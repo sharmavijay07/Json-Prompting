@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptStruct</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <h1>🔧 PromptStruct</h1>
+            </div>
+            <div class="header-controls">
+                <button type="button" id="themeToggle" class="theme-toggle" title="Toggle Dark Mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button type="button" id="historyBtn" class="history-btn" title="Prompt History">
+                    <span class="history-icon">📚</span>
+                </button>
+                <button type="button" id="settingsBtn" class="settings-btn" title="Settings">
+                    <span class="settings-icon">⚙️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="input-section">
+                <div class="section-header">
+                    <h2>Natural Language Prompt</h2>
+                    <div class="schema-selector">
+                        <label for="schemaSelect">Output Schema:</label>
+                        <select id="schemaSelect">
+                            <option value="openai-function">OpenAI Function Calling</option>
+                            <option value="langchain">LangChain Tool</option>
+                            <option value="agent-prompt">Agent Prompt</option>
+                            <option value="anthropic-tool">Anthropic Tool</option>
+                            <option value="custom">Custom Schema</option>
+                        </select>
+                    </div>
+                </div>
+                <textarea 
+                    id="promptInput" 
+                    placeholder="Enter your natural language prompt here... 
+
+Example: 'Create a function that takes a user's name and age, validates the age is between 18-100, and returns a greeting message with their details.'"
+                    rows="6"
+                ></textarea>
+                <div class="input-controls">
+                    <button type="button" id="convertBtn" class="convert-btn">
+                        <span class="btn-icon">✨</span>
+                        Convert to JSON
+                    </button>
+                    <button type="button" id="compareBtn" class="compare-btn" title="Compare across providers">
+                        <span class="btn-icon">⚖️</span>
+                        Compare
+                    </button>
+                    <button type="button" id="optimizeBtn" class="optimize-btn" title="Get AI suggestions">
+                        <span class="btn-icon">💡</span>
+                        Optimize
+                    </button>
+                    <button type="button" id="templatesBtn" class="templates-btn" title="Use prompt templates">
+                        <span class="btn-icon">📋</span>
+                        Templates
+                    </button>
+                    <button type="button" id="batchBtn" class="batch-btn" title="Batch process multiple prompts">
+                        <span class="btn-icon">📦</span>
+                        Batch
+                    </button>
+                </div>
+            </section>
+
+            <!-- Output Section -->
+            <section class="output-section">
+                <div class="section-header">
+                    <h2>Generated JSON</h2>
+                    <div class="output-controls">
+                        <button type="button" id="copyBtn" class="copy-btn" title="Copy to clipboard">
+                            <span class="btn-icon">📋</span>
+                            Copy
+                        </button>
+                        <button type="button" id="exportBtn" class="export-btn" title="Export as file">
+                            <span class="btn-icon">💾</span>
+                            Export
+                        </button>
+                    </div>
+                </div>
+                <div class="output-container">
+                    <pre id="jsonOutput" class="json-output">
+                        <code>// Your generated JSON will appear here...</code>
+                    </pre>
+                </div>
+            </section>
+
+            <!-- Suggestions Section -->
+            <section class="suggestions-section" id="suggestionsSection" style="display: none;">
+                <div class="section-header">
+                    <h2>AI Suggestions</h2>
+                </div>
+                <div id="suggestions" class="suggestions-content"></div>
+            </section>
+
+            <!-- Usage Tracking Section -->
+            <section class="usage-section" id="usageSection" style="display: none;">
+                <div class="section-header">
+                    <h2>Usage & Cost</h2>
+                    <button type="button" id="clearUsage" class="clear-usage-btn" title="Clear usage data">
+                        <span class="btn-icon">🗑️</span>
+                    </button>
+                </div>
+                <div id="usageStats" class="usage-stats"></div>
+            </section>
+        </main>
+
+        <!-- Comparison Modal -->
+        <div id="comparisonModal" class="modal" style="display: none;">
+            <div class="modal-content comparison-modal">
+                <div class="modal-header">
+                    <h2>Model Comparison</h2>
+                    <button type="button" id="closeComparison" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="comparisonResults" class="comparison-results">
+                        <div class="comparison-loading">Comparing models...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Processing Modal -->
+        <div id="batchModal" class="modal" style="display: none;">
+            <div class="modal-content batch-modal">
+                <div class="modal-header">
+                    <h2>Batch Processing</h2>
+                    <button type="button" id="closeBatch" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="batch-input-section">
+                        <label for="batchPrompts">Enter prompts (one per line):</label>
+                        <textarea id="batchPrompts" rows="8" placeholder="Enter multiple prompts, one per line...
+
+Example:
+Create a function that validates email addresses
+Build a tool for sentiment analysis
+Design an agent for customer support"></textarea>
+                    </div>
+                    <div class="batch-controls">
+                        <button type="button" id="processBatch" class="process-batch-btn">
+                            <span class="btn-icon">⚡</span>
+                            Process Batch
+                        </button>
+                    </div>
+                    <div id="batchResults" class="batch-results" style="display: none;">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Templates Modal -->
+        <div id="templatesModal" class="modal" style="display: none;">
+            <div class="modal-content templates-modal">
+                <div class="modal-header">
+                    <h2>Prompt Templates</h2>
+                    <button type="button" id="closeTemplates" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="templatesList" class="templates-list">
+                        <!-- Templates will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div id="historyModal" class="modal" style="display: none;">
+            <div class="modal-content history-modal">
+                <div class="modal-header">
+                    <h2>Prompt History</h2>
+                    <button type="button" id="closeHistory" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="historyList" class="history-list">
+                        <div class="history-empty">No prompts in history yet.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="clearHistory" class="clear-history-btn">Clear History</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal settings-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Settings</h2>
+                    <button type="button" id="closeSettings" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-group">
+                        <label for="provider">AI Provider:</label>
+                        <select id="provider">
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                            <option value="groq">Groq</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="openaiApiKey">OpenAI API Key:</label>
+                        <input type="password" id="openaiApiKey" placeholder="Enter your OpenAI API key...">
+                        <small>Get your key from https://platform.openai.com/api-keys</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="anthropicApiKey">Anthropic API Key:</label>
+                        <input type="password" id="anthropicApiKey" placeholder="Enter your Anthropic API key...">
+                        <small>Get your key from https://console.anthropic.com/</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="groqApiKey">Groq API Key:</label>
+                        <input type="password" id="groqApiKey" placeholder="Enter your Groq API key...">
+                        <small>Get your key from https://console.groq.com/</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="model">AI Model:</label>
+                        <select id="model">
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            <option value="claude-3-opus">Claude 3 Opus</option>
+                            <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                            <option value="claude-3-haiku">Claude 3 Haiku</option>
+                            <option value="llama-3.1-70b-versatile">Llama 3.1 70B (Groq)</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B (Groq)</option>
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B (Groq)</option>
+                            <option value="gemma-7b-it">Gemma 7B (Groq)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="temperature">Temperature:</label>
+                        <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.3">
+                        <span id="temperatureValue">0.3</span>
+                    </div>
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="saveHistory" checked>
+                            <span class="checkmark"></span>
+                            Save prompt history
+                        </label>
+                        <small>Keep a history of your prompts for easy reuse.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="saveSettings" class="save-settings-btn">Save Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container">
+            <!-- Toasts will be dynamically added here -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="schemas.js"></script>
+    <script src="templates.js"></script>
+    <script src="langchain-utils.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
