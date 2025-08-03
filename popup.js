@@ -284,15 +284,10 @@ class PromptStruct {
     }
 
     showSchemaPreview(schemaType) {
-        if (typeof SchemaTemplates !== 'undefined') {
-            const example = SchemaTemplates.getSchemaExamples(schemaType);
-            const previewText = `Example ${example.title}:\n${JSON.stringify(example.example, null, 2)}`;
-
-            // Update placeholder text with schema-specific example
-            const promptInput = document.getElementById('promptInput');
-            const baseExample = this.getExamplePromptForSchema(schemaType);
-            promptInput.placeholder = `Enter your natural language prompt here...\n\n${baseExample}`;
-        }
+        // Update placeholder text with schema-specific example
+        const promptInput = document.getElementById('promptInput');
+        const baseExample = this.getExamplePromptForSchema(schemaType);
+        promptInput.placeholder = `Enter your natural language prompt here...\n\n${baseExample}`;
     }
 
     getExamplePromptForSchema(schemaType) {
@@ -425,8 +420,8 @@ class PromptStruct {
     displayComparisonResults(results) {
         const container = document.getElementById('comparisonResults');
 
-        container.innerHTML = results.map(result => `
-            <div class="comparison-result ${result.success ? 'success' : 'error'}">
+        container.innerHTML = results.map((result, index) => `
+            <div class="comparison-result ${result.success ? 'success' : 'error'}" data-index="${index}">
                 <div class="comparison-header">
                     <h3>${result.provider.toUpperCase()}</h3>
                     <span class="comparison-model">${result.model}</span>
@@ -438,7 +433,7 @@ class PromptStruct {
                     ${result.success ?
                         `<pre><code>${this.escapeHtml(result.data.json)}</code></pre>
                          <div class="comparison-actions">
-                            <button class="use-result-btn" onclick="document.getElementById('jsonOutput').innerHTML = '<code>${this.escapeHtml(result.data.json).replace(/'/g, "\\'")}'; document.getElementById('comparisonModal').style.display = 'none';">
+                            <button class="use-result-btn" data-index="${index}">
                                 Use This Result
                             </button>
                          </div>` :
@@ -447,6 +442,22 @@ class PromptStruct {
                 </div>
             </div>
         `).join('');
+
+        // Add event listeners for comparison results
+        this.setupComparisonEventListeners(results);
+    }
+
+    setupComparisonEventListeners(results) {
+        document.querySelectorAll('.use-result-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const result = results[index];
+                if (result.success) {
+                    document.getElementById('jsonOutput').innerHTML = `<code>${this.escapeHtml(result.data.json)}</code>`;
+                    document.getElementById('comparisonModal').style.display = 'none';
+                }
+            });
+        });
     }
 
     // Batch processing functionality
@@ -537,7 +548,7 @@ class PromptStruct {
             </div>
             <div class="batch-results-list">
                 ${results.map((result, index) => `
-                    <div class="batch-result-item ${result.success ? 'success' : 'error'}">
+                    <div class="batch-result-item ${result.success ? 'success' : 'error'}" data-index="${index}">
                         <div class="batch-result-header">
                             <span class="batch-result-index">#${index + 1}</span>
                             <span class="batch-result-status">${result.success ? '✅' : '❌'}</span>
@@ -546,7 +557,7 @@ class PromptStruct {
                         ${result.success ?
                             `<div class="batch-result-json">
                                 <pre><code>${this.escapeHtml(result.json.substring(0, 200))}${result.json.length > 200 ? '...' : ''}</code></pre>
-                                <button class="use-batch-result-btn" onclick="document.getElementById('jsonOutput').innerHTML = '<code>${this.escapeHtml(result.json).replace(/'/g, "\\'")}'; document.getElementById('batchModal').style.display = 'none';">
+                                <button class="use-batch-result-btn" data-index="${index}">
                                     Use This Result
                                 </button>
                             </div>` :
@@ -556,16 +567,36 @@ class PromptStruct {
                 `).join('')}
             </div>
             <div class="batch-actions">
-                <button class="export-batch-btn" onclick="this.parentElement.parentElement.dispatchEvent(new CustomEvent('exportBatch'))">
+                <button class="export-batch-btn">
                     Export All Results
                 </button>
             </div>
         `;
 
-        // Add export functionality
-        container.addEventListener('exportBatch', () => {
-            this.exportBatchResults(results);
+        // Add event listeners for batch results
+        this.setupBatchEventListeners(results);
+    }
+
+    setupBatchEventListeners(results) {
+        // Use batch result buttons
+        document.querySelectorAll('.use-batch-result-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const result = results[index];
+                if (result.success) {
+                    document.getElementById('jsonOutput').innerHTML = `<code>${this.escapeHtml(result.json)}</code>`;
+                    document.getElementById('batchModal').style.display = 'none';
+                }
+            });
         });
+
+        // Export batch results button
+        const exportBtn = document.querySelector('.export-batch-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.exportBatchResults(results);
+            });
+        }
     }
 
     exportBatchResults(results) {
@@ -620,7 +651,7 @@ class PromptStruct {
                     <strong>Variables:</strong> ${template.variables.join(', ')}
                 </div>
                 <div class="template-actions">
-                    <button class="use-template-btn" onclick="this.closest('.template-item').querySelector('.template-form').style.display = this.closest('.template-item').querySelector('.template-form').style.display === 'none' ? 'block' : 'none'">
+                    <button class="use-template-btn" data-template="${key}">
                         Use Template
                     </button>
                 </div>
@@ -631,17 +662,33 @@ class PromptStruct {
                             <input type="text" data-variable="${variable}" placeholder="Enter ${variable}">
                         </div>
                     `).join('')}
-                    <button class="apply-template-btn" onclick="this.parentElement.parentElement.dispatchEvent(new CustomEvent('applyTemplate', {detail: '${key}'}))">
+                    <button class="apply-template-btn" data-template="${key}">
                         Apply Template
                     </button>
                 </div>
             </div>
         `).join('');
 
-        // Add event listeners for template application
-        container.querySelectorAll('.template-item').forEach(item => {
-            item.addEventListener('applyTemplate', (e) => {
-                this.applyTemplate(e.detail, item);
+        // Add event listeners for template actions
+        this.setupTemplateEventListeners();
+    }
+
+    setupTemplateEventListeners() {
+        // Use template buttons (show/hide form)
+        document.querySelectorAll('.use-template-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const templateItem = e.target.closest('.template-item');
+                const templateForm = templateItem.querySelector('.template-form');
+                templateForm.style.display = templateForm.style.display === 'none' ? 'block' : 'none';
+            });
+        });
+
+        // Apply template buttons
+        document.querySelectorAll('.apply-template-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const templateKey = e.target.dataset.template;
+                const templateItem = e.target.closest('.template-item');
+                this.applyTemplate(templateKey, templateItem);
             });
         });
     }
@@ -795,6 +842,21 @@ class PromptStruct {
         }
 
         suggestionsSection.style.display = 'block';
+
+        // Add event listeners for suggestion actions
+        this.setupSuggestionEventListeners();
+    }
+
+    setupSuggestionEventListeners() {
+        // Use optimized prompt buttons
+        document.querySelectorAll('.use-optimized-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const textarea = e.target.previousElementSibling;
+                if (textarea && textarea.tagName === 'TEXTAREA') {
+                    document.getElementById('promptInput').value = textarea.value;
+                }
+            });
+        });
     }
 
     formatStructuredSuggestions(data) {
@@ -838,7 +900,7 @@ class PromptStruct {
                     <h4>✨ Optimized Prompt</h4>
                     <div class="optimized-prompt">
                         <textarea readonly rows="4">${this.escapeHtml(data.optimized_prompt)}</textarea>
-                        <button class="use-optimized-btn" onclick="document.getElementById('promptInput').value = this.previousElementSibling.value">
+                        <button class="use-optimized-btn">
                             Use This Prompt
                         </button>
                     </div>
@@ -922,7 +984,7 @@ class PromptStruct {
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Export Options</h2>
-                    <button class="close-btn" onclick="this.closest('.modal').remove()">&times;</button>
+                    <button class="close-btn">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="export-options">
@@ -948,6 +1010,11 @@ class PromptStruct {
         `;
 
         document.body.appendChild(modal);
+
+        // Add close button event listener
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
 
         // Add event listeners for export options
         modal.querySelectorAll('.export-option-btn').forEach(btn => {
@@ -1080,18 +1147,18 @@ class PromptStruct {
             return;
         }
 
-        historyList.innerHTML = history.map(item => `
-            <div class="history-item" data-id="${item.id}">
+        historyList.innerHTML = history.map((item, index) => `
+            <div class="history-item" data-id="${item.id}" data-index="${index}">
                 <div class="history-header">
                     <span class="history-schema">${item.schema}</span>
                     <span class="history-date">${new Date(item.timestamp).toLocaleDateString()}</span>
                 </div>
                 <div class="history-prompt">${this.escapeHtml(item.prompt.substring(0, 100))}${item.prompt.length > 100 ? '...' : ''}</div>
                 <div class="history-actions">
-                    <button class="history-action-btn" onclick="this.closest('.history-item').querySelector('.history-json').style.display = this.closest('.history-item').querySelector('.history-json').style.display === 'none' ? 'block' : 'none'">
+                    <button class="history-action-btn view-json-btn" data-index="${index}">
                         View JSON
                     </button>
-                    <button class="history-action-btn" onclick="document.getElementById('promptInput').value = '${this.escapeHtml(item.prompt).replace(/'/g, "\\'")}'; document.getElementById('schemaSelect').value = '${item.schema}'; document.getElementById('historyModal').style.display = 'none';">
+                    <button class="history-action-btn use-prompt-btn" data-index="${index}">
                         Use Prompt
                     </button>
                 </div>
@@ -1100,6 +1167,31 @@ class PromptStruct {
                 </div>
             </div>
         `).join('');
+
+        // Add event listeners for history actions
+        this.setupHistoryEventListeners(history);
+    }
+
+    setupHistoryEventListeners(history) {
+        // View JSON buttons
+        document.querySelectorAll('.view-json-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const historyItem = e.target.closest('.history-item');
+                const jsonDiv = historyItem.querySelector('.history-json');
+                jsonDiv.style.display = jsonDiv.style.display === 'none' ? 'block' : 'none';
+            });
+        });
+
+        // Use Prompt buttons
+        document.querySelectorAll('.use-prompt-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const item = history[index];
+                document.getElementById('promptInput').value = item.prompt;
+                document.getElementById('schemaSelect').value = item.schema;
+                document.getElementById('historyModal').style.display = 'none';
+            });
+        });
     }
 
     // UI helpers
