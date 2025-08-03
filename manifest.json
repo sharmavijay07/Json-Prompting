@@ -5,12 +5,38 @@
   "description": "Convert natural language prompts into structured JSON formats for AI tools like OpenAI Function Calling, LangChain, and agent systems.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "https://api.openai.com/*",
     "https://api.anthropic.com/*",
-    "https://api.groq.com/*"
+    "https://api.groq.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://grok.com/*",
+    "https://poe.com/*",
+    "https://perplexity.ai/*",
+    "https://you.com/*",
+    "https://copilot.microsoft.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://grok.com/*",
+        "https://poe.com/*",
+        "https://perplexity.ai/*",
+        "https://you.com/*",
+        "https://copilot.microsoft.com/*"
+      ],
+      "js": ["content-script.js"],
+      "css": ["content-script.css"],
+      "run_at": "document_end"
+    }
   ],
   "action": {
     "default_popup": "popup.html",

@@ -44,7 +44,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'optimizePrompt':
             handlePromptOptimization(request.data, sendResponse);
             return true;
-            
+
+        case 'enhancePrompt':
+            handlePromptEnhancement(request.data, sendResponse);
+            return true;
+
         case 'saveToHistory':
             savePromptToHistory(request.data, sendResponse);
             return true;
@@ -171,10 +175,23 @@ async function handlePromptConversion(data, sendResponse) {
             generatedJson = result.choices[0].message.content;
         }
 
+        // Clean and validate the JSON response
+        const cleanedJson = cleanJsonResponse(generatedJson);
+
+        // Validate that it's proper JSON
+        try {
+            JSON.parse(cleanedJson);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.error('Raw response:', generatedJson);
+            console.error('Cleaned response:', cleanedJson);
+            throw new Error(`Invalid JSON response from AI: ${parseError.message}`);
+        }
+
         sendResponse({
             success: true,
             data: {
-                json: generatedJson,
+                json: cleanedJson,
                 usage: result.usage || result.usage_metadata,
                 provider: provider || 'openai'
             }
@@ -182,6 +199,126 @@ async function handlePromptConversion(data, sendResponse) {
 
     } catch (error) {
         console.error('Prompt conversion error:', error);
+        sendResponse({
+            success: false,
+            error: error.message
+        });
+    }
+}
+
+// Handle prompt enhancement
+async function handlePromptEnhancement(data, sendResponse) {
+    try {
+        const { prompt, provider, apiKey } = data;
+
+        if (!apiKey) {
+            throw new Error('API key not configured');
+        }
+
+        const enhancementPrompt = `You are an expert prompt engineer. Your task is to enhance the following prompt to make it more effective, clear, and comprehensive while maintaining its original intent.
+
+Original prompt: "${prompt}"
+
+Please provide an enhanced version that:
+1. Is more specific and detailed
+2. Includes relevant context and constraints
+3. Uses clear, actionable language
+4. Follows best practices for AI prompting
+5. Maintains the original intent but improves clarity and effectiveness
+
+Return only the enhanced prompt, no explanations or additional text.`;
+
+        let response, result, enhancedPrompt;
+
+        if (provider === 'groq') {
+            response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        { role: 'user', content: enhancementPrompt }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 1000
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'Groq API request failed');
+            }
+
+            result = await response.json();
+            enhancedPrompt = result.choices[0].message.content;
+
+        } else if (provider === 'anthropic') {
+            response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-sonnet-20240229',
+                    max_tokens: 1000,
+                    messages: [
+                        { role: 'user', content: enhancementPrompt }
+                    ],
+                    temperature: 0.3
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'Anthropic API request failed');
+            }
+
+            result = await response.json();
+            enhancedPrompt = result.content[0].text;
+
+        } else {
+            // OpenAI API (default)
+            response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4',
+                    messages: [
+                        { role: 'user', content: enhancementPrompt }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 1000
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'OpenAI API request failed');
+            }
+
+            result = await response.json();
+            enhancedPrompt = result.choices[0].message.content;
+        }
+
+        sendResponse({
+            success: true,
+            data: {
+                enhancedPrompt: enhancedPrompt.trim(),
+                originalPrompt: prompt,
+                provider: provider
+            }
+        });
+
+    } catch (error) {
+        console.error('Prompt enhancement error:', error);
         sendResponse({
             success: false,
             error: error.message
@@ -562,6 +699,62 @@ function getBasicSystemPrompt(schema) {
         default:
             return basePrompt + `Convert the user's prompt into a well-structured JSON format that best represents the intent and requirements.`;
     }
+}
+
+// Clean and extract JSON from AI response
+function cleanJsonResponse(response) {
+    if (!response) return '{}';
+
+    // Remove common prefixes and suffixes
+    let cleaned = response.trim();
+
+    // Remove markdown code blocks
+    cleaned = cleaned.replace(/```json\s*/gi, '');
+    cleaned = cleaned.replace(/```\s*/g, '');
+
+    // Remove common AI response prefixes
+    cleaned = cleaned.replace(/^(here's|here is|the json|json:|response:)\s*/gi, '');
+
+    // Find JSON content between braces or brackets
+    const jsonMatch = cleaned.match(/[\{\[][\s\S]*[\}\]]/);
+    if (jsonMatch) {
+        cleaned = jsonMatch[0];
+    }
+
+    // Remove any trailing text after the JSON
+    const lines = cleaned.split('\n');
+    let jsonLines = [];
+    let braceCount = 0;
+    let bracketCount = 0;
+    let inJson = false;
+
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        // Start tracking when we see opening brace/bracket
+        if (!inJson && (trimmedLine.startsWith('{') || trimmedLine.startsWith('['))) {
+            inJson = true;
+        }
+
+        if (inJson) {
+            jsonLines.push(line);
+
+            // Count braces and brackets
+            for (const char of line) {
+                if (char === '{') braceCount++;
+                if (char === '}') braceCount--;
+                if (char === '[') bracketCount++;
+                if (char === ']') bracketCount--;
+            }
+
+            // Stop when we've closed all braces/brackets
+            if (braceCount === 0 && bracketCount === 0) {
+                break;
+            }
+        }
+    }
+
+    return jsonLines.length > 0 ? jsonLines.join('\n').trim() : cleaned;
 }
 
 // Enhance system prompt with user preferences and feedback data

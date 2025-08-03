@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PromptStruct Content Script Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f0f0f0;
+        }
+        .test-container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .console-output {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 PromptStruct Content Script Test</h1>
+    
+    <div class="test-container">
+        <h2>📋 Test Checklist</h2>
+        <div id="extension-status" class="status info">
+            ⏳ Checking extension status...
+        </div>
+        
+        <div id="content-script-status" class="status info">
+            ⏳ Checking content script injection...
+        </div>
+        
+        <div id="sphere-status" class="status info">
+            ⏳ Looking for floating sphere...
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔧 Manual Tests</h2>
+        <button onclick="testExtensionAPI()">Test Extension API</button>
+        <button onclick="testContentScript()">Test Content Script</button>
+        <button onclick="simulateAISite()">Simulate AI Site</button>
+        <button onclick="clearConsole()">Clear Console</button>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 Console Output</h2>
+        <div id="console-output" class="console-output">
+            Console messages will appear here...
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🌐 Test URLs</h2>
+        <p>Try visiting these URLs to test the content script:</p>
+        <ul>
+            <li><a href="https://chatgpt.com" target="_blank">🤖 ChatGPT (chatgpt.com)</a></li>
+            <li><a href="https://claude.ai" target="_blank">🧠 Claude (claude.ai)</a></li>
+            <li><a href="https://grok.com" target="_blank">🚀 Grok (grok.com)</a></li>
+            <li><a href="https://gemini.google.com" target="_blank">💎 Gemini (gemini.google.com)</a></li>
+        </ul>
+    </div>
+
+    <script>
+        // Capture console messages
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('console-output');
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : '#00ff00';
+            consoleOutput.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span>\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        // Test functions
+        function testExtensionAPI() {
+            console.log('Testing extension API...');
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                console.log('✅ Chrome extension API available');
+                document.getElementById('extension-status').className = 'status success';
+                document.getElementById('extension-status').textContent = '✅ Extension API available';
+            } else {
+                console.error('❌ Chrome extension API not available');
+                document.getElementById('extension-status').className = 'status error';
+                document.getElementById('extension-status').textContent = '❌ Extension API not available';
+            }
+        }
+
+        function testContentScript() {
+            console.log('Testing content script injection...');
+            
+            // Check if PromptStruct classes exist
+            const sphere = document.querySelector('.promptstruct-sphere');
+            const panel = document.querySelector('.promptstruct-panel');
+            
+            if (sphere) {
+                console.log('✅ PromptStruct sphere found');
+                document.getElementById('sphere-status').className = 'status success';
+                document.getElementById('sphere-status').textContent = '✅ Floating sphere detected';
+            } else {
+                console.log('❌ PromptStruct sphere not found');
+                document.getElementById('sphere-status').className = 'status error';
+                document.getElementById('sphere-status').textContent = '❌ Floating sphere not found';
+            }
+            
+            // Check for content script
+            if (window.PromptStructIntegration || sphere) {
+                console.log('✅ Content script appears to be loaded');
+                document.getElementById('content-script-status').className = 'status success';
+                document.getElementById('content-script-status').textContent = '✅ Content script loaded';
+            } else {
+                console.log('❌ Content script not detected');
+                document.getElementById('content-script-status').className = 'status error';
+                document.getElementById('content-script-status').textContent = '❌ Content script not detected';
+            }
+        }
+
+        function simulateAISite() {
+            console.log('Simulating AI site environment...');
+            
+            // Change hostname simulation
+            console.log('Current hostname:', window.location.hostname);
+            console.log('Current URL:', window.location.href);
+            
+            // Create a fake AI input field
+            const fakeInput = document.createElement('textarea');
+            fakeInput.placeholder = 'Message ChatGPT...';
+            fakeInput.style.cssText = `
+                width: 100%;
+                height: 100px;
+                margin: 10px 0;
+                padding: 10px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            `;
+            
+            const container = document.querySelector('.test-container:last-child');
+            container.appendChild(document.createElement('h3')).textContent = '🤖 Simulated AI Input';
+            container.appendChild(fakeInput);
+            
+            console.log('✅ Simulated AI input field created');
+        }
+
+        function clearConsole() {
+            consoleOutput.innerHTML = 'Console cleared...\n';
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', function() {
+            console.log('🧪 PromptStruct Test Page Loaded');
+            console.log('Current URL:', window.location.href);
+            console.log('User Agent:', navigator.userAgent);
+            
+            setTimeout(() => {
+                testExtensionAPI();
+                testContentScript();
+            }, 1000);
+        });
+
+        // Check for PromptStruct every 2 seconds
+        setInterval(() => {
+            const sphere = document.querySelector('.promptstruct-sphere');
+            if (sphere && !sphere.dataset.detected) {
+                sphere.dataset.detected = 'true';
+                console.log('🎉 PromptStruct sphere appeared!');
+                document.getElementById('sphere-status').className = 'status success';
+                document.getElementById('sphere-status').textContent = '✅ Floating sphere detected (appeared dynamically)';
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
