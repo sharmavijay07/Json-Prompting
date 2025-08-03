@@ -329,7 +329,7 @@ Return only the enhanced prompt, no explanations or additional text.`;
 // Handle prompt optimization
 async function handlePromptOptimization(data, sendResponse) {
     try {
-        const { prompt, schema, apiKey, provider, model, temperature } = data;
+        const { prompt, schema, apiKey, provider, model, temperature, feedbackHistory } = data;
 
         if (!apiKey) {
             sendResponse({
@@ -339,11 +339,19 @@ async function handlePromptOptimization(data, sendResponse) {
             return;
         }
 
+        // Analyze feedback history for learning insights
+        const learningInsights = analyzeFeedbackPatterns(feedbackHistory);
+
         const optimizationPrompt = `You are an expert prompt engineer. Analyze the following prompt and provide specific, actionable suggestions to improve it for ${schema} schema generation.
 
 Original prompt: "${prompt}"
 
 Target schema: ${schema}
+
+${learningInsights ? `
+Based on user feedback patterns:
+${learningInsights}
+` : ''}
 
 Provide your analysis in the following JSON format:
 {
@@ -443,11 +451,51 @@ Focus on making the prompt more effective for generating high-quality ${schema} 
             suggestions = result.choices[0].message.content;
         }
 
+        // Clean and parse the suggestions
+        const cleanedSuggestions = cleanJsonResponse(suggestions);
+        let parsedSuggestions;
+
+        try {
+            parsedSuggestions = JSON.parse(cleanedSuggestions);
+        } catch (parseError) {
+            console.error('Failed to parse optimization suggestions:', parseError);
+            // Fallback to a simple format
+            parsedSuggestions = {
+                suggestions: [{
+                    title: 'Optimization Suggestion',
+                    description: suggestions.substring(0, 200) + '...',
+                    action: 'append',
+                    addition: '\n\nOptimization notes: ' + suggestions.substring(0, 500)
+                }]
+            };
+        }
+
+        // Convert the parsed response to the expected format
+        let formattedSuggestions = [];
+
+        if (parsedSuggestions.improvements && Array.isArray(parsedSuggestions.improvements)) {
+            formattedSuggestions = parsedSuggestions.improvements.map(imp => ({
+                title: imp.category || 'Improvement',
+                description: imp.suggestion || imp.issue || 'Optimization suggestion',
+                action: 'append',
+                addition: imp.suggestion ? `\n\n${imp.category || 'Improvement'}: ${imp.suggestion}` : '',
+                newPrompt: parsedSuggestions.optimized_prompt || ''
+            }));
+        } else if (parsedSuggestions.suggestions && Array.isArray(parsedSuggestions.suggestions)) {
+            formattedSuggestions = parsedSuggestions.suggestions;
+        } else if (Array.isArray(parsedSuggestions)) {
+            formattedSuggestions = parsedSuggestions;
+        }
+
         sendResponse({
             success: true,
             data: {
-                suggestions,
-                provider: provider || 'openai'
+                suggestions: formattedSuggestions,
+                rawResponse: suggestions,
+                provider: provider || 'openai',
+                optimizedPrompt: parsedSuggestions.optimized_prompt,
+                overallScore: parsedSuggestions.overall_score,
+                strengths: parsedSuggestions.strengths
             }
         });
 
@@ -851,6 +899,72 @@ async function enhanceSystemPromptWithPreferences(basePrompt, schema, userPrefer
     }
 
     return enhancedPrompt;
+}
+
+// Analyze feedback patterns to provide learning insights
+function analyzeFeedbackPatterns(feedbackHistory) {
+    if (!feedbackHistory || feedbackHistory.length === 0) {
+        return null;
+    }
+
+    const patterns = {
+        preferredSchemas: {},
+        commonIssues: [],
+        successPatterns: []
+    };
+
+    feedbackHistory.forEach(feedback => {
+        // Track preferred schemas
+        if (feedback.feedbackType === 'preferred' || feedback.feedbackType === 'positive') {
+            patterns.preferredSchemas[feedback.schema] = (patterns.preferredSchemas[feedback.schema] || 0) + 1;
+        }
+
+        // Analyze prompt characteristics that led to good/bad feedback
+        if (feedback.prompt) {
+            const promptLength = feedback.prompt.length;
+            const hasExamples = feedback.prompt.toLowerCase().includes('example');
+            const hasConstraints = feedback.prompt.toLowerCase().includes('must') || feedback.prompt.toLowerCase().includes('should');
+
+            if (feedback.feedbackType === 'positive' || feedback.feedbackType === 'preferred') {
+                patterns.successPatterns.push({
+                    length: promptLength,
+                    hasExamples,
+                    hasConstraints,
+                    schema: feedback.schema
+                });
+            }
+        }
+    });
+
+    // Generate insights
+    let insights = "User preferences learned from feedback:\n";
+
+    // Most preferred schema
+    const topSchema = Object.keys(patterns.preferredSchemas).reduce((a, b) =>
+        patterns.preferredSchemas[a] > patterns.preferredSchemas[b] ? a : b, null);
+
+    if (topSchema) {
+        insights += `- Prefers ${topSchema} schema format\n`;
+    }
+
+    // Success patterns
+    if (patterns.successPatterns.length > 0) {
+        const avgSuccessLength = patterns.successPatterns.reduce((sum, p) => sum + p.length, 0) / patterns.successPatterns.length;
+        const exampleUsage = patterns.successPatterns.filter(p => p.hasExamples).length / patterns.successPatterns.length;
+        const constraintUsage = patterns.successPatterns.filter(p => p.hasConstraints).length / patterns.successPatterns.length;
+
+        if (avgSuccessLength > 100) {
+            insights += `- Tends to prefer detailed prompts (avg ${Math.round(avgSuccessLength)} chars)\n`;
+        }
+        if (exampleUsage > 0.5) {
+            insights += "- Responds well to prompts with examples\n";
+        }
+        if (constraintUsage > 0.5) {
+            insights += "- Prefers prompts with clear constraints and requirements\n";
+        }
+    }
+
+    return insights;
 }
 
 

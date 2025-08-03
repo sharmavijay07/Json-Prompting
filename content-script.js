@@ -450,6 +450,79 @@ class PromptStructIntegration {
                 }
             }
 
+            /* Developer Tools Styles */
+            .promptstruct-dev-tools {
+                margin: 16px 0;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: #f9fafb;
+            }
+
+            .promptstruct-dev-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 16px;
+                background: #f3f4f6;
+                border-radius: 8px 8px 0 0;
+                cursor: pointer;
+                font-weight: 500;
+                color: #374151;
+            }
+
+            .promptstruct-dev-header:hover {
+                background: #e5e7eb;
+            }
+
+            .promptstruct-dev-toggle {
+                background: none;
+                border: none;
+                font-size: 12px;
+                color: #6b7280;
+                cursor: pointer;
+                transition: transform 0.2s ease;
+            }
+
+            .promptstruct-dev-content {
+                padding: 16px;
+            }
+
+            .promptstruct-dev-row {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+
+            .promptstruct-dev-row:last-child {
+                margin-bottom: 0;
+            }
+
+            .promptstruct-dev-btn {
+                flex: 1;
+                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                text-align: center;
+            }
+
+            .promptstruct-dev-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+
+            .promptstruct-dev-btn:nth-child(even) {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            }
+
+            .promptstruct-dev-btn:nth-child(even):hover {
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+
             /* Responsive design */
             @media (max-width: 480px) {
                 .promptstruct-panel {
@@ -462,6 +535,14 @@ class PromptStructIntegration {
                     width: 50px;
                     height: 50px;
                     font-size: 20px;
+                }
+
+                .promptstruct-dev-row {
+                    flex-direction: column;
+                }
+
+                .promptstruct-dev-btn {
+                    margin-bottom: 4px;
                 }
             }
         `;
@@ -576,8 +657,56 @@ class PromptStructIntegration {
                         <option value="langchain">LangChain Tool</option>
                         <option value="agent-prompt">Agent Prompt</option>
                         <option value="anthropic-tool">Anthropic Tool</option>
+                        <option value="typescript-interface">TypeScript Interface</option>
+                        <option value="python-pydantic">Python Pydantic Model</option>
+                        <option value="json-schema">JSON Schema</option>
+                        <option value="zod-schema">Zod Schema</option>
+                        <option value="api-endpoint">REST API Endpoint</option>
+                        <option value="graphql-schema">GraphQL Schema</option>
                         <option value="custom">Custom Schema</option>
                     </select>
+                </div>
+
+                <!-- Developer Tools Section -->
+                <div class="promptstruct-dev-tools" id="promptstruct-dev-tools">
+                    <div class="promptstruct-dev-header">
+                        <span>🛠️ Developer Tools</span>
+                        <button class="promptstruct-dev-toggle" id="promptstruct-dev-toggle">▼</button>
+                    </div>
+                    <div class="promptstruct-dev-content" id="promptstruct-dev-content" style="display: none;">
+                        <div class="promptstruct-dev-row">
+                            <button class="promptstruct-dev-btn" id="promptstruct-code-detect" title="Auto-detect code context">
+                                🔍 Detect Code Context
+                            </button>
+                            <button class="promptstruct-dev-btn" id="promptstruct-add-validation" title="Add validation rules">
+                                ✅ Add Validation
+                            </button>
+                        </div>
+                        <div class="promptstruct-dev-row">
+                            <button class="promptstruct-dev-btn" id="promptstruct-add-examples" title="Add code examples">
+                                📝 Add Examples
+                            </button>
+                            <button class="promptstruct-dev-btn" id="promptstruct-add-tests" title="Include test cases">
+                                🧪 Add Tests
+                            </button>
+                        </div>
+                        <div class="promptstruct-dev-row">
+                            <button class="promptstruct-dev-btn" id="promptstruct-add-docs" title="Add documentation">
+                                📚 Add Docs
+                            </button>
+                            <button class="promptstruct-dev-btn" id="promptstruct-add-types" title="Add type safety">
+                                🔒 Add Types
+                            </button>
+                        </div>
+                        <div class="promptstruct-dev-row">
+                            <button class="promptstruct-dev-btn" id="promptstruct-quick-snippets" title="Quick code snippets">
+                                ⚡ Quick Snippets
+                            </button>
+                            <button class="promptstruct-dev-btn" id="promptstruct-best-practices" title="Add best practices">
+                                🏆 Best Practices
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="promptstruct-controls">
@@ -698,6 +827,50 @@ class PromptStructIntegration {
 
         this.panel.querySelector('#promptstruct-star').addEventListener('click', () => {
             this.submitFeedback('preferred');
+        });
+
+        // Developer tools toggle
+        const devToggle = this.panel.querySelector('#promptstruct-dev-toggle');
+        const devHeader = this.panel.querySelector('.promptstruct-dev-header');
+
+        if (devToggle && devHeader) {
+            // Add click listener to both the button and header
+            devToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleDevTools();
+            });
+
+            devHeader.addEventListener('click', () => {
+                this.toggleDevTools();
+            });
+        }
+
+        // Developer tool buttons with error handling
+        const devButtons = [
+            { id: '#promptstruct-code-detect', method: 'detectCodeContext' },
+            { id: '#promptstruct-add-validation', method: 'addValidationRules' },
+            { id: '#promptstruct-add-examples', method: 'addCodeExamples' },
+            { id: '#promptstruct-add-tests', method: 'addTestCases' },
+            { id: '#promptstruct-add-docs', method: 'addDocumentation' },
+            { id: '#promptstruct-add-types', method: 'addTypeSafety' },
+            { id: '#promptstruct-quick-snippets', method: 'showQuickSnippets' },
+            { id: '#promptstruct-best-practices', method: 'addBestPractices' }
+        ];
+
+        devButtons.forEach(({ id, method }) => {
+            const button = this.panel.querySelector(id);
+            if (button) {
+                button.addEventListener('click', () => {
+                    try {
+                        this[method]();
+                    } catch (error) {
+                        console.error(`Error in ${method}:`, error);
+                        this.showToast(`Error: ${method} failed`, 'error');
+                    }
+                });
+            } else {
+                console.warn(`Developer button not found: ${id}`);
+            }
         });
 
         // Auto-fill from current prompt on focus
@@ -1037,7 +1210,246 @@ To fix this:
             return;
         }
 
-        this.showToast('AI optimization suggestions coming soon!', 'info');
+        const optimizeBtn = this.panel.querySelector('#promptstruct-optimize');
+        const originalText = optimizeBtn.innerHTML;
+        optimizeBtn.innerHTML = '🔄 Analyzing...';
+        optimizeBtn.disabled = true;
+
+        try {
+            // Get API settings
+            const settings = await chrome.storage.sync.get(['groqApiKey', 'openaiApiKey', 'anthropicApiKey', 'provider']);
+
+            // Get previous feedback for learning
+            const feedbackData = await chrome.storage.local.get(['promptstructFeedback']);
+            const feedback = feedbackData.promptstructFeedback || [];
+
+            const response = await chrome.runtime.sendMessage({
+                action: 'optimizePrompt',
+                data: {
+                    prompt: promptText,
+                    provider: settings.provider || 'groq',
+                    apiKey: settings.groqApiKey || settings.openaiApiKey || settings.anthropicApiKey,
+                    feedbackHistory: feedback.slice(-10) // Last 10 feedback entries for learning
+                }
+            });
+
+            if (response.success) {
+                // Handle different response formats
+                let suggestions = response.data.suggestions;
+                if (!Array.isArray(suggestions)) {
+                    // If it's a string, try to parse it as JSON
+                    if (typeof suggestions === 'string') {
+                        try {
+                            const parsed = JSON.parse(suggestions);
+                            suggestions = parsed.suggestions || parsed.improvements || [];
+                        } catch (e) {
+                            // If parsing fails, create a simple suggestion
+                            suggestions = [{
+                                title: 'Optimization Suggestion',
+                                description: suggestions,
+                                action: 'append',
+                                addition: '\n\nOptimization: ' + suggestions
+                            }];
+                        }
+                    } else if (suggestions && suggestions.improvements) {
+                        // Handle the format from the background script
+                        suggestions = suggestions.improvements.map(imp => ({
+                            title: imp.category || 'Improvement',
+                            description: imp.suggestion || imp.issue,
+                            action: 'replace',
+                            newPrompt: suggestions.optimized_prompt || this.panel.querySelector('#promptstruct-input').value + '\n\n' + imp.suggestion
+                        }));
+                    } else {
+                        // Fallback to empty array
+                        suggestions = [];
+                    }
+                }
+
+                if (suggestions.length > 0) {
+                    this.showOptimizationSuggestions(suggestions);
+                    this.showToast('Optimization suggestions generated!', 'success');
+                } else {
+                    this.showToast('No specific optimizations suggested', 'info');
+                }
+            } else {
+                throw new Error(response.error || 'Optimization failed');
+            }
+        } catch (error) {
+            console.error('Optimization error:', error);
+            this.showToast('Failed to generate optimization suggestions', 'error');
+        } finally {
+            optimizeBtn.innerHTML = originalText;
+            optimizeBtn.disabled = false;
+        }
+    }
+
+    showOptimizationSuggestions(suggestions) {
+        console.log('Showing optimization suggestions:', suggestions);
+
+        // Ensure suggestions is an array and has valid data
+        if (!Array.isArray(suggestions)) {
+            console.error('Suggestions is not an array:', suggestions);
+            suggestions = [];
+        }
+
+        // Filter out invalid suggestions and add defaults if needed
+        const validSuggestions = suggestions.filter(s => s && typeof s === 'object').map(suggestion => ({
+            title: suggestion.title || suggestion.category || suggestion.type || 'Optimization Suggestion',
+            description: suggestion.description || suggestion.suggestion || suggestion.issue || suggestion.text || 'Improve your prompt structure and clarity',
+            action: suggestion.action || 'append',
+            addition: suggestion.addition || suggestion.newPrompt || suggestion.improvement || '',
+            newPrompt: suggestion.newPrompt || ''
+        }));
+
+        // If no valid suggestions, create default ones
+        if (validSuggestions.length === 0) {
+            validSuggestions.push(
+                {
+                    title: 'Add Context',
+                    description: 'Include more specific context about your requirements',
+                    action: 'append',
+                    addition: '\n\nAdditional context: Please provide specific examples and detailed requirements.'
+                },
+                {
+                    title: 'Improve Clarity',
+                    description: 'Make your prompt more clear and specific',
+                    action: 'append',
+                    addition: '\n\nClarification: Be more specific about the expected output format and constraints.'
+                },
+                {
+                    title: 'Add Examples',
+                    description: 'Include examples to guide the AI response',
+                    action: 'append',
+                    addition: '\n\nExample: [Provide a concrete example of what you want]'
+                }
+            );
+        }
+
+        // Create suggestions popup
+        const suggestionsDiv = document.createElement('div');
+        suggestionsDiv.className = 'promptstruct-suggestions-popup';
+        suggestionsDiv.innerHTML = `
+            <div class="promptstruct-suggestions-header">
+                <h4>💡 Optimization Suggestions</h4>
+                <button class="promptstruct-suggestions-close">×</button>
+            </div>
+            <div class="promptstruct-suggestions-content">
+                ${validSuggestions.map((suggestion, index) => `
+                    <div class="promptstruct-suggestion-item">
+                        <div class="suggestion-title">${suggestion.title}</div>
+                        <div class="suggestion-description">${suggestion.description}</div>
+                        <button class="suggestion-apply-btn" data-suggestion="${index}">Apply</button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // Add styles for suggestions popup
+        if (!document.querySelector('#promptstruct-suggestions-styles')) {
+            const style = document.createElement('style');
+            style.id = 'promptstruct-suggestions-styles';
+            style.textContent = `
+                .promptstruct-suggestions-popup {
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 500px;
+                    max-height: 400px;
+                    background: white;
+                    border-radius: 12px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    z-index: 10001;
+                    overflow: hidden;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .promptstruct-suggestions-header {
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    color: white;
+                    padding: 16px 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .promptstruct-suggestions-close {
+                    background: rgba(255, 255, 255, 0.2);
+                    border: none;
+                    border-radius: 50%;
+                    width: 28px;
+                    height: 28px;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 16px;
+                }
+                .promptstruct-suggestions-content {
+                    padding: 20px;
+                    max-height: 300px;
+                    overflow-y: auto;
+                }
+                .promptstruct-suggestion-item {
+                    margin-bottom: 16px;
+                    padding: 12px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    background: #f9fafb;
+                }
+                .suggestion-title {
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 4px;
+                }
+                .suggestion-description {
+                    font-size: 14px;
+                    color: #6b7280;
+                    margin-bottom: 8px;
+                }
+                .suggestion-apply-btn {
+                    background: #10b981;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 6px 12px;
+                    font-size: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .suggestion-apply-btn:hover {
+                    background: #059669;
+                    transform: scale(1.05);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(suggestionsDiv);
+
+        // Add event listeners
+        suggestionsDiv.querySelector('.promptstruct-suggestions-close').addEventListener('click', () => {
+            suggestionsDiv.remove();
+        });
+
+        suggestionsDiv.querySelectorAll('.suggestion-apply-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const suggestionIndex = parseInt(e.target.dataset.suggestion);
+                const suggestion = validSuggestions[suggestionIndex];
+                if (suggestion.action === 'replace') {
+                    this.panel.querySelector('#promptstruct-input').value = suggestion.newPrompt;
+                } else if (suggestion.action === 'append') {
+                    const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+                    this.panel.querySelector('#promptstruct-input').value = currentPrompt + ' ' + suggestion.addition;
+                }
+                this.showToast('Suggestion applied!', 'success');
+                suggestionsDiv.remove();
+            });
+        });
+
+        // Close on outside click
+        document.addEventListener('click', function closeOnOutside(e) {
+            if (!suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.remove();
+                document.removeEventListener('click', closeOnOutside);
+            }
+        });
     }
 
     async submitFeedback(type) {
@@ -1147,6 +1559,80 @@ To fix this:
             attributes: true,
             attributeFilter: ['value']
         });
+
+        // Also observe for AI responses to learn from them
+        this.observeAIResponses();
+    }
+
+    observeAIResponses() {
+        // Different selectors for AI response containers on different platforms
+        const responseSelectors = {
+            'ChatGPT': '[data-message-author-role="assistant"]',
+            'Claude': '[data-is-streaming="false"]',
+            'Gemini': '.model-response-text',
+            'Grok': '.response-content',
+            'Poe': '.Message_botMessageBubble',
+            'Perplexity': '.prose',
+            'You.com': '.response-text',
+            'Copilot': '.response-message'
+        };
+
+        const responseSelector = responseSelectors[this.currentSite];
+        if (!responseSelector) return;
+
+        const responseObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            const responseElement = node.querySelector ? node.querySelector(responseSelector) : null;
+                            if (responseElement || node.matches?.(responseSelector)) {
+                                this.captureAIResponse(responseElement || node);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        responseObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    async captureAIResponse(responseElement) {
+        // Wait a bit to ensure the response is complete
+        setTimeout(async () => {
+            const responseText = responseElement.textContent || responseElement.innerText;
+            if (responseText && responseText.length > 50) { // Only capture substantial responses
+
+                // Check if this response is related to our last conversion
+                if (this.lastConversion && Date.now() - this.lastConversion.timestamp < 300000) { // 5 minutes
+                    const learningData = {
+                        ...this.lastConversion,
+                        aiResponse: responseText.substring(0, 2000), // Limit response length
+                        responseTimestamp: Date.now(),
+                        site: this.currentSite,
+                        responseQuality: 'pending' // Will be updated when user provides feedback
+                    };
+
+                    // Store for learning
+                    const existingLearning = await chrome.storage.local.get(['promptstructLearning']);
+                    const learning = existingLearning.promptstructLearning || [];
+                    learning.push(learningData);
+
+                    // Keep only last 100 entries to avoid storage bloat
+                    if (learning.length > 100) {
+                        learning.splice(0, learning.length - 100);
+                    }
+
+                    await chrome.storage.local.set({ promptstructLearning: learning });
+
+                    console.log('PromptStruct: Captured AI response for learning');
+                }
+            }
+        }, 2000);
     }
 
     // Auto-enhance prompts when user types
@@ -1209,6 +1695,300 @@ To fix this:
             notification.remove();
             style.remove();
         }, 3000);
+    }
+
+    // Developer Tools Methods
+    toggleDevTools() {
+        const content = this.panel.querySelector('#promptstruct-dev-content');
+        const toggle = this.panel.querySelector('#promptstruct-dev-toggle');
+
+        if (!content || !toggle) {
+            console.error('Developer tools elements not found');
+            this.showToast('Developer tools not available', 'error');
+            return;
+        }
+
+        console.log('Toggling dev tools, current display:', content.style.display);
+
+        if (content.style.display === 'none' || content.style.display === '') {
+            content.style.display = 'block';
+            toggle.textContent = '▲';
+            this.showToast('Developer tools opened', 'info');
+        } else {
+            content.style.display = 'none';
+            toggle.textContent = '▼';
+            this.showToast('Developer tools closed', 'info');
+        }
+    }
+
+    detectCodeContext() {
+        const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+
+        // Analyze the prompt for code-related keywords
+        const codeKeywords = {
+            'function': 'function development',
+            'class': 'class/object design',
+            'api': 'API development',
+            'database': 'database operations',
+            'algorithm': 'algorithm implementation',
+            'test': 'testing and validation',
+            'component': 'component development',
+            'service': 'service architecture',
+            'model': 'data modeling',
+            'interface': 'interface design'
+        };
+
+        let detectedContext = [];
+        const lowerPrompt = currentPrompt.toLowerCase();
+
+        Object.keys(codeKeywords).forEach(keyword => {
+            if (lowerPrompt.includes(keyword)) {
+                detectedContext.push(codeKeywords[keyword]);
+            }
+        });
+
+        if (detectedContext.length > 0) {
+            const enhancement = `\n\nDetected context: ${detectedContext.join(', ')}. Please ensure the implementation includes proper error handling, type safety, and follows best practices for ${detectedContext[0]}.`;
+            this.panel.querySelector('#promptstruct-input').value = currentPrompt + enhancement;
+            this.showToast(`Added context: ${detectedContext.join(', ')}`, 'success');
+        } else {
+            this.showToast('No specific code context detected', 'info');
+        }
+    }
+
+    addValidationRules() {
+        const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+        const validation = `\n\nValidation requirements:
+- Input validation for all parameters
+- Type checking and sanitization
+- Error handling for edge cases
+- Boundary condition checks
+- Security validation (SQL injection, XSS prevention)`;
+
+        this.panel.querySelector('#promptstruct-input').value = currentPrompt + validation;
+        this.showToast('Added validation requirements', 'success');
+    }
+
+    addCodeExamples() {
+        const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+        const examples = `\n\nPlease include:
+- Code examples showing usage
+- Input/output examples
+- Edge case examples
+- Best practice examples
+- Common pitfall examples`;
+
+        this.panel.querySelector('#promptstruct-input').value = currentPrompt + examples;
+        this.showToast('Added example requirements', 'success');
+    }
+
+    addTestCases() {
+        const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+        const tests = `\n\nTesting requirements:
+- Unit test cases for all functions
+- Integration test scenarios
+- Edge case testing
+- Performance test considerations
+- Mock data examples
+- Test coverage expectations`;
+
+        this.panel.querySelector('#promptstruct-input').value = currentPrompt + tests;
+        this.showToast('Added testing requirements', 'success');
+    }
+
+    addDocumentation() {
+        const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+        const docs = `\n\nDocumentation requirements:
+- Comprehensive JSDoc/docstring comments
+- README with usage instructions
+- API documentation
+- Code comments explaining complex logic
+- Examples and tutorials
+- Changelog and versioning info`;
+
+        this.panel.querySelector('#promptstruct-input').value = currentPrompt + docs;
+        this.showToast('Added documentation requirements', 'success');
+    }
+
+    addTypeSafety() {
+        const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+        const types = `\n\nType safety requirements:
+- Strong typing for all parameters and returns
+- Interface/type definitions
+- Generic type support where applicable
+- Runtime type checking
+- Type guards and assertions
+- Null/undefined safety`;
+
+        this.panel.querySelector('#promptstruct-input').value = currentPrompt + types;
+        this.showToast('Added type safety requirements', 'success');
+    }
+
+    showQuickSnippets() {
+        const snippets = [
+            {
+                title: 'REST API Endpoint',
+                prompt: 'Create a REST API endpoint that handles CRUD operations for [resource] with proper error handling, validation, and authentication.'
+            },
+            {
+                title: 'React Component',
+                prompt: 'Create a React functional component with TypeScript that [functionality] using hooks, proper prop types, and error boundaries.'
+            },
+            {
+                title: 'Database Schema',
+                prompt: 'Design a database schema for [entity] with proper relationships, indexes, constraints, and migration scripts.'
+            },
+            {
+                title: 'Algorithm Implementation',
+                prompt: 'Implement [algorithm name] with optimal time/space complexity, including edge case handling and comprehensive test cases.'
+            },
+            {
+                title: 'Microservice',
+                prompt: 'Design a microservice for [functionality] with proper logging, monitoring, health checks, and containerization.'
+            },
+            {
+                title: 'Data Processing Pipeline',
+                prompt: 'Create a data processing pipeline that [processes data] with error handling, retry logic, and performance optimization.'
+            }
+        ];
+
+        this.showSnippetSelector(snippets);
+    }
+
+    showSnippetSelector(snippets) {
+        const modal = document.createElement('div');
+        modal.className = 'promptstruct-snippet-modal';
+        modal.innerHTML = `
+            <div class="promptstruct-snippet-content">
+                <div class="promptstruct-snippet-header">
+                    <h4>⚡ Quick Code Snippets</h4>
+                    <button class="promptstruct-snippet-close">×</button>
+                </div>
+                <div class="promptstruct-snippet-list">
+                    ${snippets.map((snippet, index) => `
+                        <div class="promptstruct-snippet-item" data-index="${index}">
+                            <div class="snippet-title">${snippet.title}</div>
+                            <div class="snippet-preview">${snippet.prompt.substring(0, 100)}...</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        if (!document.querySelector('#promptstruct-snippet-styles')) {
+            const style = document.createElement('style');
+            style.id = 'promptstruct-snippet-styles';
+            style.textContent = `
+                .promptstruct-snippet-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10002;
+                }
+                .promptstruct-snippet-content {
+                    background: white;
+                    border-radius: 12px;
+                    width: 500px;
+                    max-height: 600px;
+                    overflow: hidden;
+                }
+                .promptstruct-snippet-header {
+                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                    color: white;
+                    padding: 16px 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .promptstruct-snippet-close {
+                    background: rgba(255, 255, 255, 0.2);
+                    border: none;
+                    border-radius: 50%;
+                    width: 28px;
+                    height: 28px;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 16px;
+                }
+                .promptstruct-snippet-list {
+                    max-height: 400px;
+                    overflow-y: auto;
+                    padding: 20px;
+                }
+                .promptstruct-snippet-item {
+                    padding: 12px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .promptstruct-snippet-item:hover {
+                    background: #f0f4ff;
+                    border-color: #3b82f6;
+                    transform: translateY(-1px);
+                }
+                .snippet-title {
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 4px;
+                }
+                .snippet-preview {
+                    font-size: 12px;
+                    color: #6b7280;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(modal);
+
+        // Add event listeners
+        modal.querySelector('.promptstruct-snippet-close').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        modal.querySelectorAll('.promptstruct-snippet-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const index = parseInt(item.dataset.index);
+                const snippet = snippets[index];
+                this.panel.querySelector('#promptstruct-input').value = snippet.prompt;
+                this.showToast(`Applied ${snippet.title} template`, 'success');
+                modal.remove();
+            });
+        });
+
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
+    addBestPractices() {
+        const currentPrompt = this.panel.querySelector('#promptstruct-input').value;
+        const practices = `\n\nBest practices to include:
+- SOLID principles compliance
+- Clean code standards
+- Performance optimization
+- Security best practices
+- Accessibility considerations
+- Code maintainability
+- Error handling patterns
+- Logging and monitoring
+- Code documentation
+- Testing strategies`;
+
+        this.panel.querySelector('#promptstruct-input').value = currentPrompt + practices;
+        this.showToast('Added best practices requirements', 'success');
     }
 }
 
