@@ -38,11 +38,23 @@
                     <div class="schema-selector">
                         <label for="schemaSelect">Output Schema:</label>
                         <select id="schemaSelect">
-                            <option value="openai-function">OpenAI Function Calling</option>
-                            <option value="langchain">LangChain Tool</option>
-                            <option value="agent-prompt">Agent Prompt</option>
-                            <option value="anthropic-tool">Anthropic Tool</option>
-                            <option value="custom">Custom Schema</option>
+                            <optgroup label="🤖 AI Development">
+                                <option value="openai-function">OpenAI Function Calling</option>
+                                <option value="langchain">LangChain Tool</option>
+                                <option value="agent-prompt">Agent Prompt</option>
+                                <option value="anthropic-tool">Anthropic Tool</option>
+                            </optgroup>
+                            <optgroup label="🎨 Creative & Artistic">
+                                <option value="text-to-image">🖼️ Text-to-Image</option>
+                                <option value="text-to-video">🎬 Text-to-Video</option>
+                                <option value="text-to-audio">🎵 Text-to-Audio/Music</option>
+                                <option value="text-to-speech">🗣️ Text-to-Speech</option>
+                                <option value="creative-writing">✍️ Creative Writing</option>
+                                <option value="artistic-design">🎨 Artistic Design</option>
+                            </optgroup>
+                            <optgroup label="⚙️ General">
+                                <option value="custom">Custom Schema</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>

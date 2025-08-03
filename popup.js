@@ -16,6 +16,38 @@ class PromptStruct {
         this.init();
     }
 
+    // Force text visibility fix
+    forceTextVisibility() {
+        // Force text color for all input elements
+        const inputs = document.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            input.style.setProperty('color', '#1a202c', 'important');
+            input.style.setProperty('-webkit-text-fill-color', '#1a202c', 'important');
+            input.style.setProperty('opacity', '1', 'important');
+        });
+
+        // Specific fix for promptInput
+        const promptInput = document.getElementById('promptInput');
+        if (promptInput) {
+            promptInput.style.setProperty('color', '#1a202c', 'important');
+            promptInput.style.setProperty('-webkit-text-fill-color', '#1a202c', 'important');
+            promptInput.style.setProperty('opacity', '1', 'important');
+            promptInput.style.setProperty('font-weight', '500', 'important');
+        }
+
+        // Check for dark theme and adjust accordingly
+        if (document.documentElement.getAttribute('data-theme') === 'dark') {
+            inputs.forEach(input => {
+                input.style.setProperty('color', '#f7fafc', 'important');
+                input.style.setProperty('-webkit-text-fill-color', '#f7fafc', 'important');
+            });
+            if (promptInput) {
+                promptInput.style.setProperty('color', '#f7fafc', 'important');
+                promptInput.style.setProperty('-webkit-text-fill-color', '#f7fafc', 'important');
+            }
+        }
+    }
+
     async init() {
         await this.loadSettings();
         this.setupEventListeners();
@@ -23,6 +55,12 @@ class PromptStruct {
         this.loadSchemaPreference();
         this.updateUsageDisplay();
         this.initializeFeedbackSystem();
+        await this.setupArtisticModeIndicator();
+
+        // Force text visibility after everything is loaded
+        setTimeout(() => {
+            this.forceTextVisibility();
+        }, 100);
     }
 
     // Get the current API key based on selected provider
@@ -236,6 +274,11 @@ class PromptStruct {
         document.body.setAttribute('data-theme', this.currentTheme);
         const themeIcon = document.querySelector('.theme-icon');
         themeIcon.textContent = this.currentTheme === 'light' ? '🌙' : '☀️';
+
+        // Force text visibility after theme change
+        setTimeout(() => {
+            this.forceTextVisibility();
+        }, 50);
     }
 
     // Initialize feedback system
@@ -524,13 +567,20 @@ class PromptStruct {
         enhancedDisplay.style.display = 'none';
         loadingDiv.style.display = 'block';
 
+        // Add artistic mode styling if applicable
+        const tabInfo = await this.getCurrentTabInfo();
+        if (tabInfo.category !== 'general') {
+            modal.classList.add('artistic-mode');
+            modal.classList.add(`${tabInfo.category}-mode`);
+        }
+
         try {
             // Get recommendations from feedback manager
             const schema = document.getElementById('schemaSelect').value;
             const recommendations = this.feedbackManager.getPromptRecommendations(currentPrompt, schema);
 
             // Generate enhanced prompt using AI
-            const enhancedPrompt = await this.generateEnhancedPrompt(currentPrompt, schema, recommendations);
+            const enhancedPrompt = await this.generateEnhancedPrompt(currentPrompt);
 
             // Display results
             loadingDiv.style.display = 'none';
@@ -553,39 +603,185 @@ class PromptStruct {
     }
 
     // Generate enhanced prompt using AI
-    async generateEnhancedPrompt(originalPrompt, schema, recommendations) {
+    async generateEnhancedPrompt(originalPrompt) {
         const apiKey = this.getCurrentApiKey();
         if (!apiKey) {
             throw new Error('API key not configured');
         }
 
-        // Create enhancement prompt based on feedback data
-        const enhancementPrompt = this.createEnhancementPrompt(originalPrompt, schema, recommendations);
+        // Get current tab info for artistic context
+        const tabInfo = await this.getCurrentTabInfo();
 
         // Call AI API to enhance the prompt
         const response = await chrome.runtime.sendMessage({
-            action: 'convertPrompt',
+            action: 'enhancePrompt',
             data: {
-                prompt: enhancementPrompt,
-                schema: 'custom',
+                prompt: originalPrompt,
                 apiKey: apiKey,
-                model: this.settings.model,
                 provider: this.settings.provider,
-                temperature: 0.3
+                currentSite: tabInfo.site,
+                creativeCategory: tabInfo.category
             }
         });
 
         if (response.success) {
-            // Extract enhanced prompt from response
-            try {
-                const result = JSON.parse(response.data.json);
-                return result.enhanced_prompt || result.prompt || originalPrompt;
-            } catch (e) {
-                // If not JSON, return the raw response
-                return response.data.json.replace(/['"]/g, '').trim();
-            }
+            // Return the enhanced prompt directly
+            return response.data.enhancedPrompt || originalPrompt;
         } else {
             throw new Error(response.error);
+        }
+    }
+
+    // Setup artistic mode indicator
+    async setupArtisticModeIndicator() {
+        const tabInfo = await this.getCurrentTabInfo();
+        const schemaSelector = document.querySelector('.schema-selector');
+
+        if (tabInfo.category !== 'general' && tabInfo.site) {
+            // Add artistic mode indicator
+            const indicator = document.createElement('div');
+            indicator.className = `artistic-mode-indicator ${tabInfo.category}-mode`;
+            indicator.innerHTML = `
+                <span>${this.getArtisticIcon(tabInfo.category)}</span>
+                <span>${tabInfo.category.toUpperCase()} MODE</span>
+            `;
+
+            // Insert after schema selector
+            if (schemaSelector) {
+                schemaSelector.appendChild(indicator);
+            }
+
+            // Auto-select appropriate schema
+            const schemaSelect = document.getElementById('schemaSelect');
+            if (schemaSelect) {
+                const schemaMap = {
+                    'image': 'text-to-image',
+                    'video': 'text-to-video',
+                    'audio': 'text-to-audio',
+                    'text': 'creative-writing'
+                };
+
+                const suggestedSchema = schemaMap[tabInfo.category];
+                if (suggestedSchema) {
+                    schemaSelect.value = suggestedSchema;
+                }
+            }
+        }
+    }
+
+    // Get artistic icon for category
+    getArtisticIcon(category) {
+        const icons = {
+            'image': '🖼️',
+            'video': '🎬',
+            'audio': '🎵',
+            'text': '✍️',
+            'general': '🎨'
+        };
+        return icons[category] || icons.general;
+    }
+
+    // Get current tab information for artistic context
+    async getCurrentTabInfo() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const url = new URL(tab.url);
+            const hostname = url.hostname;
+            const pathname = url.pathname;
+            const fullUrl = hostname + pathname;
+
+            // Check for specific URL patterns first (same as content script)
+            const urlPatterns = {
+                // Leonardo AI specific paths
+                'app.leonardo.ai/image-generation': 'Leonardo AI',
+                'app.leonardo.ai/ai-canvas': 'Leonardo AI',
+                'app.leonardo.ai/finetuned-models': 'Leonardo AI',
+
+                // Runway specific paths
+                'app.runwayml.com/video-tools': 'Runway',
+                'app.runwayml.com/ai-tools': 'Runway',
+
+                // Suno AI specific paths
+                'app.suno.ai/create': 'Suno AI',
+                'suno.com/create': 'Suno AI',
+
+                // ElevenLabs specific paths
+                'elevenlabs.io/speech-synthesis': 'ElevenLabs',
+                'beta.elevenlabs.io/speech-synthesis': 'ElevenLabs'
+            };
+
+            // Check URL patterns first
+            for (const [pattern, site] of Object.entries(urlPatterns)) {
+                if (fullUrl.includes(pattern)) {
+                    const categoryMap = {
+                        'Leonardo AI': 'image',
+                        'Runway': 'video',
+                        'Suno AI': 'audio',
+                        'ElevenLabs': 'audio'
+                    };
+                    const category = categoryMap[site] || 'general';
+                    return { site, category, hostname, fullUrl };
+                }
+            }
+
+            // Fallback to hostname mapping
+            const siteMap = {
+                // Traditional AI Chat Sites
+                'chatgpt.com': 'ChatGPT',
+                'claude.ai': 'Claude',
+                'gemini.google.com': 'Gemini',
+                'grok.com': 'Grok',
+
+                // Image Generation
+                'midjourney.com': 'Midjourney',
+                'www.midjourney.com': 'Midjourney',
+                'firefly.adobe.com': 'Adobe Firefly',
+                'leonardo.ai': 'Leonardo AI',
+                'app.leonardo.ai': 'Leonardo AI',
+                'playground.ai': 'Playground AI',
+                'ideogram.ai': 'Ideogram',
+                'flux1.ai': 'Flux AI',
+
+                // Video Generation
+                'synthesia.io': 'Synthesia',
+                'runwayml.com': 'Runway',
+                'app.runwayml.com': 'Runway',
+                'pika.art': 'Pika Labs',
+                'luma.ai': 'Luma AI',
+                'haiper.ai': 'Haiper',
+
+                // Audio Generation
+                'suno.com': 'Suno AI',
+                'app.suno.ai': 'Suno AI',
+                'elevenlabs.io': 'ElevenLabs',
+                'beta.elevenlabs.io': 'ElevenLabs',
+                'mubert.com': 'Mubert',
+                'soundraw.io': 'Soundraw'
+            };
+
+            const site = siteMap[hostname] || null;
+
+            // Category mapping
+            const categoryMap = {
+                'Midjourney': 'image',
+                'Adobe Firefly': 'image',
+                'Leonardo AI': 'image',
+                'Playground AI': 'image',
+                'Ideogram': 'image',
+                'Synthesia': 'video',
+                'Runway': 'video',
+                'Pika Labs': 'video',
+                'Luma AI': 'video',
+                'Suno AI': 'audio',
+                'ElevenLabs': 'audio'
+            };
+
+            const category = categoryMap[site] || 'general';
+
+            return { site, category, hostname };
+        } catch (error) {
+            console.error('Error getting tab info:', error);
+            return { site: null, category: 'general', hostname: null };
         }
     }
 

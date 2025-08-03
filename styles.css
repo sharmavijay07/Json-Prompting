@@ -194,8 +194,14 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background-color: var(--bg-primary);
-    color: var(--text-primary);
+    color: #1a202c !important; /* Force dark text for better visibility */
     font-size: 12px;
+}
+
+[data-theme="dark"] .schema-selector select {
+    color: #f7fafc !important; /* Force light text in dark theme */
+    background-color: #2d3748;
+    border-color: #4a5568;
 }
 
 /* Input Styles */
@@ -205,12 +211,18 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background-color: var(--bg-primary);
-    color: var(--text-primary);
+    color: #1a202c !important; /* Force dark text for better visibility */
     font-family: inherit;
     font-size: 14px;
     resize: vertical;
     min-height: 120px;
     transition: border-color 0.2s ease;
+}
+
+[data-theme="dark"] #promptInput {
+    color: #f7fafc !important; /* Force light text in dark theme */
+    background-color: #2d3748;
+    border-color: #4a5568;
 }
 
 #promptInput:focus {
@@ -221,6 +233,56 @@ body {
 
 #promptInput::placeholder {
     color: var(--text-muted);
+    opacity: 0.7;
+}
+
+/* General input and textarea text color fix */
+input, textarea, select {
+    color: #1a202c !important; /* Force dark text for better visibility */
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    color: #f7fafc !important; /* Force light text in dark theme */
+}
+
+/* High specificity fixes for popup elements */
+.popup-container input,
+.popup-container textarea,
+.popup-container select,
+body input,
+body textarea,
+body select,
+html input,
+html textarea,
+html select {
+    color: #1a202c !important; /* Force dark text with highest specificity */
+    -webkit-text-fill-color: #1a202c !important; /* Override webkit autofill */
+}
+
+[data-theme="dark"] .popup-container input,
+[data-theme="dark"] .popup-container textarea,
+[data-theme="dark"] .popup-container select,
+[data-theme="dark"] body input,
+[data-theme="dark"] body textarea,
+[data-theme="dark"] body select,
+[data-theme="dark"] html input,
+[data-theme="dark"] html textarea,
+[data-theme="dark"] html select {
+    color: #f7fafc !important; /* Force light text in dark theme */
+    -webkit-text-fill-color: #f7fafc !important; /* Override webkit autofill */
+}
+
+/* Ensure option elements are also visible */
+option {
+    color: #1a202c !important;
+    background-color: #ffffff !important;
+}
+
+[data-theme="dark"] option {
+    color: #f7fafc !important;
+    background-color: #2d3748 !important;
 }
 
 /* Button Styles */
@@ -1214,8 +1276,15 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background-color: var(--bg-primary);
-    color: var(--text-primary);
+    color: #1a202c !important; /* Force dark text for better visibility */
     font-size: 14px;
+}
+
+[data-theme="dark"] .setting-group input,
+[data-theme="dark"] .setting-group select {
+    color: #f7fafc !important; /* Force light text in dark theme */
+    background-color: #2d3748;
+    border-color: #4a5568;
 }
 
 .setting-group small {
@@ -1751,10 +1820,87 @@ body {
     box-shadow: 0 6px 20px rgba(240, 147, 251, 0.4);
 }
 
+/* Artistic Schema Styling */
+.schema-selector select optgroup[label*="Creative"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: bold;
+}
+
+.schema-selector select option[value^="text-to-"] {
+    background: linear-gradient(90deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    color: #333;
+    padding: 8px;
+}
+
+.schema-selector select option[value="creative-writing"] {
+    background: linear-gradient(90deg, #a8edea 0%, #fed6e3 100%);
+    color: #333;
+}
+
+.schema-selector select option[value="artistic-design"] {
+    background: linear-gradient(90deg, #ffecd2 0%, #fcb69f 100%);
+    color: #333;
+}
+
+/* Artistic Mode Indicators */
+.artistic-mode-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    color: white;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+}
+
+.artistic-mode-indicator.image-mode {
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+}
+
+.artistic-mode-indicator.video-mode {
+    background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+}
+
+.artistic-mode-indicator.audio-mode {
+    background: linear-gradient(45deg, #ffecd2, #fcb69f, #ff9a9e);
+}
+
+.artistic-mode-indicator.text-mode {
+    background: linear-gradient(45deg, #a8edea, #fed6e3, #d299c2);
+}
+
+/* Enhanced Schema Icons */
+.schema-selector select option::before {
+    content: attr(data-icon);
+    margin-right: 8px;
+}
+
 /* Prompt Enhancement Modal */
 .enhancement-modal {
     max-width: 800px;
     width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Artistic Enhancement Styling */
+.enhancement-modal.artistic-mode {
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #667eea) border-box;
+}
+
+.enhancement-modal.artistic-mode .modal-header h2 {
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .enhancement-comparison {
@@ -1788,6 +1934,8 @@ body {
     border-radius: 8px;
     padding: 12px;
     min-height: 120px;
+    max-height: 300px;
+    overflow-y: auto;
     font-family: 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.5;
@@ -2203,3 +2351,48 @@ html {
 
 /* Responsive Design - Removed for extension popup */
 /* Extension popup should maintain fixed width */
+
+/* CRITICAL TEXT VISIBILITY FIX - HIGHEST PRIORITY */
+/* This must be at the end to override all other styles */
+#promptInput,
+textarea#promptInput,
+.popup-container #promptInput,
+body #promptInput,
+html #promptInput {
+    color: #1a202c !important;
+    -webkit-text-fill-color: #1a202c !important;
+    opacity: 1 !important;
+    font-weight: 500 !important;
+}
+
+[data-theme="dark"] #promptInput,
+[data-theme="dark"] textarea#promptInput,
+[data-theme="dark"] .popup-container #promptInput,
+[data-theme="dark"] body #promptInput,
+[data-theme="dark"] html #promptInput {
+    color: #f7fafc !important;
+    -webkit-text-fill-color: #f7fafc !important;
+    opacity: 1 !important;
+    font-weight: 500 !important;
+}
+
+/* Fix all input elements with maximum specificity */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
+    color: #1a202c !important;
+    -webkit-text-fill-color: #1a202c !important;
+    opacity: 1 !important;
+}
+
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    color: #f7fafc !important;
+    -webkit-text-fill-color: #f7fafc !important;
+    opacity: 1 !important;
+}

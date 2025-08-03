@@ -29,6 +29,7 @@ class PromptStructIntegration {
             this.createFloatingPanel();
             this.setupEventListeners();
             this.observePromptChanges();
+            this.setupArtisticAutoDetection();
 
             // Setup auto-enhancement after a delay to ensure page is fully loaded
             setTimeout(() => {
@@ -551,7 +552,42 @@ class PromptStructIntegration {
 
     detectAISite() {
         const hostname = window.location.hostname;
+        const pathname = window.location.pathname;
+        const fullUrl = hostname + pathname;
+
+        // Check for specific URL patterns first
+        const urlPatterns = {
+            // Leonardo AI specific paths
+            'app.leonardo.ai/image-generation': 'Leonardo AI',
+            'app.leonardo.ai/ai-canvas': 'Leonardo AI',
+            'app.leonardo.ai/finetuned-models': 'Leonardo AI',
+
+            // Runway specific paths
+            'app.runwayml.com/video-tools': 'Runway',
+            'app.runwayml.com/ai-tools': 'Runway',
+
+            // Suno AI specific paths
+            'app.suno.ai/create': 'Suno AI',
+            'suno.com/create': 'Suno AI',
+
+            // ElevenLabs specific paths
+            'elevenlabs.io/speech-synthesis': 'ElevenLabs',
+            'beta.elevenlabs.io/speech-synthesis': 'ElevenLabs',
+
+            // Midjourney Discord
+            'discord.com/channels/@me': this.detectMidjourneyDiscord() ? 'Midjourney' : null
+        };
+
+        // Check URL patterns first
+        for (const [pattern, site] of Object.entries(urlPatterns)) {
+            if (fullUrl.includes(pattern) && site) {
+                return site;
+            }
+        }
+
+        // Fallback to hostname mapping
         const siteMap = {
+            // Traditional AI Chat Sites
             'chatgpt.com': 'ChatGPT',
             'claude.ai': 'Claude',
             'gemini.google.com': 'Gemini',
@@ -559,10 +595,178 @@ class PromptStructIntegration {
             'poe.com': 'Poe',
             'perplexity.ai': 'Perplexity',
             'you.com': 'You.com',
-            'copilot.microsoft.com': 'Copilot'
+            'copilot.microsoft.com': 'Copilot',
+
+            // Text Generation
+            'jasper.ai': 'Jasper',
+            'www.jasper.ai': 'Jasper',
+            'copy.ai': 'Copy.ai',
+            'www.copy.ai': 'Copy.ai',
+            'notion.so': 'Notion AI',
+            'www.notion.so': 'Notion AI',
+            'mem.ai': 'Mem',
+            'www.mem.ai': 'Mem',
+
+            // Image Generation
+            'midjourney.com': 'Midjourney',
+            'www.midjourney.com': 'Midjourney',
+            'firefly.adobe.com': 'Adobe Firefly',
+            'artbreeder.com': 'Artbreeder',
+            'www.artbreeder.com': 'Artbreeder',
+            'leonardo.ai': 'Leonardo AI',
+            'app.leonardo.ai': 'Leonardo AI',
+            'playground.ai': 'Playground AI',
+            'playgroundai.com': 'Playground AI',
+            'ideogram.ai': 'Ideogram',
+            'www.ideogram.ai': 'Ideogram',
+            'flux1.ai': 'Flux AI',
+            'www.flux1.ai': 'Flux AI',
+
+            // Video Generation
+            'synthesia.io': 'Synthesia',
+            'www.synthesia.io': 'Synthesia',
+            'runwayml.com': 'Runway',
+            'app.runwayml.com': 'Runway',
+            'deepmind.google': 'Google Veo',
+            'veo.google': 'Google Veo',
+            'kuaishou.com': 'Kling AI',
+            'kling.kuaishou.com': 'Kling AI',
+            'elai.io': 'Elai.io',
+            'www.elai.io': 'Elai.io',
+            'vmaker.com': 'Vmaker AI',
+            'www.vmaker.com': 'Vmaker AI',
+            'hypernatural.ai': 'Hypernatural',
+            'www.hypernatural.ai': 'Hypernatural',
+            'pika.art': 'Pika Labs',
+            'www.pika.art': 'Pika Labs',
+            'haiper.ai': 'Haiper',
+            'www.haiper.ai': 'Haiper',
+            'luma.ai': 'Luma AI',
+            'lumalabs.ai': 'Luma AI',
+
+            // Audio & Music Generation
+            'suno.com': 'Suno AI',
+            'www.suno.com': 'Suno AI',
+            'app.suno.ai': 'Suno AI',
+            'elevenlabs.io': 'ElevenLabs',
+            'www.elevenlabs.io': 'ElevenLabs',
+            'beta.elevenlabs.io': 'ElevenLabs',
+            'mubert.com': 'Mubert',
+            'www.mubert.com': 'Mubert',
+            'soundraw.io': 'Soundraw',
+            'www.soundraw.io': 'Soundraw',
+            'beatoven.ai': 'Beatoven.ai',
+            'www.beatoven.ai': 'Beatoven.ai',
+            'boomy.com': 'Boomy',
+            'www.boomy.com': 'Boomy',
+            'aiva.ai': 'AIVA',
+            'www.aiva.ai': 'AIVA'
         };
 
         return siteMap[hostname] || null;
+    }
+
+    // Helper function to detect Midjourney in Discord
+    detectMidjourneyDiscord() {
+        // Check if we're in a Discord channel that might be Midjourney
+        const title = document.title.toLowerCase();
+        const content = document.body.textContent.toLowerCase();
+        return title.includes('midjourney') || content.includes('/imagine') || content.includes('midjourney bot');
+    }
+
+    // Detect if current site is artistic/creative
+    isArtisticSite() {
+        const artisticSites = [
+            'Jasper', 'Copy.ai', 'Notion AI', 'Mem',
+            'Midjourney', 'Adobe Firefly', 'Artbreeder', 'Leonardo AI', 'Playground AI', 'Ideogram',
+            'Synthesia', 'Runway', 'Google Veo', 'Kling AI', 'Elai.io', 'Vmaker AI', 'Hypernatural', 'Pika Labs', 'Haiper', 'Luma AI',
+            'Suno AI', 'ElevenLabs', 'Mubert', 'Soundraw', 'Beatoven.ai', 'Boomy', 'AIVA'
+        ];
+        return artisticSites.includes(this.currentSite);
+    }
+
+    // Get the creative category of the current site
+    getCreativeCategory() {
+        const categories = {
+            // Text Generation
+            'Jasper': 'text',
+            'Copy.ai': 'text',
+            'Notion AI': 'text',
+            'Mem': 'text',
+
+            // Image Generation
+            'Midjourney': 'image',
+            'Adobe Firefly': 'image',
+            'Artbreeder': 'image',
+            'Leonardo AI': 'image',
+            'Playground AI': 'image',
+            'Ideogram': 'image',
+
+            // Video Generation
+            'Synthesia': 'video',
+            'Runway': 'video',
+            'Google Veo': 'video',
+            'Kling AI': 'video',
+            'Elai.io': 'video',
+            'Vmaker AI': 'video',
+            'Hypernatural': 'video',
+            'Pika Labs': 'video',
+            'Haiper': 'video',
+            'Luma AI': 'video',
+
+            // Audio & Music Generation
+            'Suno AI': 'audio',
+            'ElevenLabs': 'audio',
+            'Mubert': 'audio',
+            'Soundraw': 'audio',
+            'Beatoven.ai': 'audio',
+            'Boomy': 'audio',
+            'AIVA': 'audio'
+        };
+
+        return categories[this.currentSite] || 'general';
+    }
+
+    // Setup automatic artistic schema detection
+    setupArtisticAutoDetection() {
+        if (!this.isArtisticSite()) return;
+
+        const category = this.getCreativeCategory();
+        const schemaSelect = this.panel?.querySelector('#promptstruct-schema');
+
+        if (schemaSelect) {
+            // Auto-select appropriate schema based on site category
+            const schemaMap = {
+                'image': 'text-to-image',
+                'video': 'text-to-video',
+                'audio': 'text-to-audio',
+                'text': 'creative-writing'
+            };
+
+            const suggestedSchema = schemaMap[category];
+            if (suggestedSchema) {
+                schemaSelect.value = suggestedSchema;
+                console.log(`PromptStruct: Auto-selected ${suggestedSchema} schema for ${this.currentSite}`);
+            }
+        }
+
+        // Add artistic enhancement indicator to sphere
+        if (this.sphere) {
+            this.sphere.style.background = this.getArtisticSphereGradient(category);
+            this.sphere.title = `PromptStruct - ${this.currentSite} (${category.toUpperCase()} mode)`;
+        }
+    }
+
+    // Get artistic gradient for sphere based on category
+    getArtisticSphereGradient(category) {
+        const gradients = {
+            'image': 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1)',
+            'video': 'linear-gradient(45deg, #667eea, #764ba2, #f093fb)',
+            'audio': 'linear-gradient(45deg, #ffecd2, #fcb69f, #ff9a9e)',
+            'text': 'linear-gradient(45deg, #a8edea, #fed6e3, #d299c2)',
+            'general': 'linear-gradient(45deg, #667eea, #764ba2)'
+        };
+        return gradients[category] || gradients.general;
     }
 
     getPromptSelectors() {
@@ -653,17 +857,31 @@ class PromptStructIntegration {
                 <div class="promptstruct-input-group">
                     <label class="promptstruct-label">Output Schema:</label>
                     <select class="promptstruct-select" id="promptstruct-schema">
-                        <option value="openai-function">OpenAI Function Calling</option>
-                        <option value="langchain">LangChain Tool</option>
-                        <option value="agent-prompt">Agent Prompt</option>
-                        <option value="anthropic-tool">Anthropic Tool</option>
-                        <option value="typescript-interface">TypeScript Interface</option>
-                        <option value="python-pydantic">Python Pydantic Model</option>
-                        <option value="json-schema">JSON Schema</option>
-                        <option value="zod-schema">Zod Schema</option>
-                        <option value="api-endpoint">REST API Endpoint</option>
-                        <option value="graphql-schema">GraphQL Schema</option>
-                        <option value="custom">Custom Schema</option>
+                        <optgroup label="🤖 AI Development">
+                            <option value="openai-function">OpenAI Function Calling</option>
+                            <option value="langchain">LangChain Tool</option>
+                            <option value="agent-prompt">Agent Prompt</option>
+                            <option value="anthropic-tool">Anthropic Tool</option>
+                        </optgroup>
+                        <optgroup label="🎨 Creative & Artistic">
+                            <option value="text-to-image">🖼️ Text-to-Image</option>
+                            <option value="text-to-video">🎬 Text-to-Video</option>
+                            <option value="text-to-audio">🎵 Text-to-Audio/Music</option>
+                            <option value="text-to-speech">🗣️ Text-to-Speech</option>
+                            <option value="creative-writing">✍️ Creative Writing</option>
+                            <option value="artistic-design">🎨 Artistic Design</option>
+                        </optgroup>
+                        <optgroup label="💻 Development">
+                            <option value="typescript-interface">TypeScript Interface</option>
+                            <option value="python-pydantic">Python Pydantic Model</option>
+                            <option value="json-schema">JSON Schema</option>
+                            <option value="zod-schema">Zod Schema</option>
+                            <option value="api-endpoint">REST API Endpoint</option>
+                            <option value="graphql-schema">GraphQL Schema</option>
+                        </optgroup>
+                        <optgroup label="⚙️ General">
+                            <option value="custom">Custom Schema</option>
+                        </optgroup>
                     </select>
                 </div>
 
@@ -1043,7 +1261,20 @@ To fix this:
             }
         } catch (error) {
             console.error('PromptStruct conversion error:', error);
-            outputDiv.textContent = `Error: ${error.message}`;
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                provider: provider,
+                hasApiKey: !!apiKey,
+                promptLength: promptText.length
+            });
+
+            // Show detailed error message
+            const errorMessage = error.message.includes('API key not configured')
+                ? error.message
+                : `Conversion failed: ${error.message}\n\nPlease check:\n1. Your API key is valid\n2. You have sufficient credits\n3. The API service is available`;
+
+            outputDiv.textContent = errorMessage;
             outputDiv.style.display = 'block';
         } finally {
             convertButton.disabled = false;

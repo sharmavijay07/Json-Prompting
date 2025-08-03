@@ -175,6 +175,11 @@ async function handlePromptConversion(data, sendResponse) {
             generatedJson = result.choices[0].message.content;
         }
 
+        // Validate that we got a response
+        if (!generatedJson) {
+            throw new Error('Empty response from AI API');
+        }
+
         // Clean and validate the JSON response
         const cleanedJson = cleanJsonResponse(generatedJson);
 
@@ -185,7 +190,7 @@ async function handlePromptConversion(data, sendResponse) {
             console.error('JSON parse error:', parseError);
             console.error('Raw response:', generatedJson);
             console.error('Cleaned response:', cleanedJson);
-            throw new Error(`Invalid JSON response from AI: ${parseError.message}`);
+            throw new Error(`Invalid JSON response from AI. Raw response: ${generatedJson.substring(0, 200)}...`);
         }
 
         sendResponse({
@@ -199,9 +204,16 @@ async function handlePromptConversion(data, sendResponse) {
 
     } catch (error) {
         console.error('Prompt conversion error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            provider: data.provider,
+            hasApiKey: !!data.apiKey,
+            prompt: data.prompt?.substring(0, 100) + '...'
+        });
         sendResponse({
             success: false,
-            error: error.message
+            error: `Conversion failed: ${error.message}`
         });
     }
 }
@@ -209,24 +221,15 @@ async function handlePromptConversion(data, sendResponse) {
 // Handle prompt enhancement
 async function handlePromptEnhancement(data, sendResponse) {
     try {
-        const { prompt, provider, apiKey } = data;
+        const { prompt, provider, apiKey, currentSite, creativeCategory } = data;
 
         if (!apiKey) {
             throw new Error('API key not configured');
         }
 
-        const enhancementPrompt = `You are an expert prompt engineer. Your task is to enhance the following prompt to make it more effective, clear, and comprehensive while maintaining its original intent.
-
-Original prompt: "${prompt}"
-
-Please provide an enhanced version that:
-1. Is more specific and detailed
-2. Includes relevant context and constraints
-3. Uses clear, actionable language
-4. Follows best practices for AI prompting
-5. Maintains the original intent but improves clarity and effectiveness
-
-Return only the enhanced prompt, no explanations or additional text.`;
+        // Detect if this is an artistic/creative prompt
+        const isArtistic = detectArtisticPrompt(prompt, currentSite, creativeCategory);
+        const enhancementPrompt = createEnhancementPrompt(prompt, isArtistic, currentSite, creativeCategory);
 
         let response, result, enhancedPrompt;
 
@@ -744,6 +747,21 @@ function getBasicSystemPrompt(schema) {
             return basePrompt + `Convert the user's prompt into a structured agent prompt format with role, task, instructions, and constraints.`;
         case 'anthropic-tool':
             return basePrompt + `Convert the user's prompt into Anthropic Claude tool format with name, description, and input_schema.`;
+
+        // Artistic/Creative Schemas
+        case 'text-to-image':
+            return basePrompt + `Convert the user's prompt into a comprehensive text-to-image generation JSON with detailed visual descriptions, style parameters, technical settings, and artistic elements. Include fields like: prompt, negative_prompt, style, aspect_ratio, quality, artistic_style, lighting, composition, color_palette, mood, technical_details.`;
+        case 'text-to-video':
+            return basePrompt + `Convert the user's prompt into a detailed text-to-video generation JSON with scene descriptions, motion parameters, camera movements, and production settings. Include fields like: scene_description, duration, camera_movement, motion_type, style, quality, fps, aspect_ratio, transitions, audio_cues, visual_effects.`;
+        case 'text-to-audio':
+            return basePrompt + `Convert the user's prompt into a comprehensive text-to-audio/music generation JSON with audio characteristics, musical elements, and production parameters. Include fields like: description, genre, mood, tempo, key, instruments, vocals, duration, style, production_quality, audio_effects.`;
+        case 'text-to-speech':
+            return basePrompt + `Convert the user's prompt into a detailed text-to-speech generation JSON with voice characteristics, speech parameters, and audio settings. Include fields like: text, voice_type, gender, age, accent, emotion, speed, pitch, volume, pronunciation_style, audio_format.`;
+        case 'creative-writing':
+            return basePrompt + `Convert the user's prompt into a structured creative writing JSON with narrative elements, character details, and story parameters. Include fields like: genre, tone, style, characters, setting, plot_points, themes, target_audience, word_count, narrative_perspective.`;
+        case 'artistic-design':
+            return basePrompt + `Convert the user's prompt into a comprehensive artistic design JSON with visual elements, design principles, and creative specifications. Include fields like: design_type, color_scheme, typography, layout, style_reference, dimensions, target_medium, artistic_movement, visual_hierarchy.`;
+
         default:
             return basePrompt + `Convert the user's prompt into a well-structured JSON format that best represents the intent and requirements.`;
     }
@@ -803,6 +821,163 @@ function cleanJsonResponse(response) {
     }
 
     return jsonLines.length > 0 ? jsonLines.join('\n').trim() : cleaned;
+}
+
+// Detect if a prompt is artistic/creative in nature
+function detectArtisticPrompt(prompt, currentSite, creativeCategory) {
+    // If we're on an artistic site, it's likely artistic
+    if (creativeCategory && creativeCategory !== 'general') {
+        return true;
+    }
+
+    // Check for artistic keywords in the prompt
+    const artisticKeywords = [
+        // Visual art
+        'image', 'picture', 'photo', 'artwork', 'painting', 'drawing', 'illustration', 'design', 'visual', 'graphic',
+        'color', 'style', 'aesthetic', 'composition', 'lighting', 'mood', 'atmosphere', 'artistic',
+
+        // Video/Animation
+        'video', 'animation', 'movie', 'film', 'cinematic', 'scene', 'camera', 'motion', 'movement',
+        'transition', 'effect', 'visual effects', 'cinematography',
+
+        // Audio/Music
+        'music', 'song', 'audio', 'sound', 'melody', 'rhythm', 'beat', 'voice', 'speech', 'narration',
+        'instrumental', 'vocals', 'genre', 'tempo', 'harmony',
+
+        // Creative writing
+        'story', 'narrative', 'character', 'plot', 'dialogue', 'creative writing', 'fiction', 'poetry',
+        'script', 'screenplay', 'novel', 'chapter'
+    ];
+
+    const promptLower = prompt.toLowerCase();
+    return artisticKeywords.some(keyword => promptLower.includes(keyword));
+}
+
+// Create enhancement prompt based on artistic context
+function createEnhancementPrompt(prompt, isArtistic, currentSite, creativeCategory) {
+    if (!isArtistic) {
+        // Standard enhancement for non-artistic prompts
+        return `You are an expert prompt engineer. Your task is to enhance the following prompt to make it more effective, clear, and comprehensive while maintaining its original intent.
+
+Original prompt: "${prompt}"
+
+Please provide an enhanced version that:
+1. Is more specific and detailed
+2. Includes relevant context and constraints
+3. Uses clear, actionable language
+4. Follows best practices for AI prompting
+5. Maintains the original intent but improves clarity and effectiveness
+
+Return only the enhanced prompt, no explanations or additional text.`;
+    }
+
+    // Artistic enhancement based on category
+    const categoryEnhancements = {
+        'image': `You are an expert prompt engineer specializing in text-to-image generation. Enhance the following prompt for optimal image generation results.
+
+Original prompt: "${prompt}"
+
+Create an enhanced version that includes:
+1. **Visual Details**: Specific descriptions of subjects, objects, and scenes
+2. **Artistic Style**: Art movement, technique, or specific artist references
+3. **Technical Parameters**: Camera settings, lighting conditions, composition rules
+4. **Color & Mood**: Color palette, atmosphere, emotional tone
+5. **Quality Modifiers**: Resolution, detail level, artistic quality descriptors
+6. **Negative Space**: What should NOT be included (if relevant)
+
+Example enhancements to consider:
+- Lighting: "soft golden hour lighting", "dramatic chiaroscuro", "studio lighting"
+- Style: "in the style of [artist]", "photorealistic", "oil painting", "digital art"
+- Composition: "rule of thirds", "close-up portrait", "wide angle landscape"
+- Quality: "highly detailed", "8K resolution", "masterpiece", "professional photography"
+
+Return only the enhanced prompt with rich visual descriptions.`,
+
+        'video': `You are an expert prompt engineer specializing in text-to-video generation. Enhance the following prompt for optimal video generation results.
+
+Original prompt: "${prompt}"
+
+Create an enhanced version that includes:
+1. **Scene Description**: Detailed visual elements and setting
+2. **Motion & Action**: Specific movements, camera work, transitions
+3. **Cinematic Style**: Film genre, director style, cinematography techniques
+4. **Technical Specs**: Duration, frame rate, aspect ratio preferences
+5. **Audio Elements**: Background music, sound effects, dialogue cues
+6. **Visual Effects**: Special effects, post-processing, color grading
+
+Example enhancements to consider:
+- Camera work: "smooth tracking shot", "drone aerial view", "handheld documentary style"
+- Motion: "slow motion", "time-lapse", "smooth transitions", "dynamic movement"
+- Style: "cinematic", "documentary style", "music video aesthetic"
+- Effects: "particle effects", "color grading", "depth of field"
+
+Return only the enhanced prompt with detailed scene and motion descriptions.`,
+
+        'audio': `You are an expert prompt engineer specializing in text-to-audio and music generation. Enhance the following prompt for optimal audio generation results.
+
+Original prompt: "${prompt}"
+
+Create an enhanced version that includes:
+1. **Musical Elements**: Genre, tempo, key, time signature
+2. **Instrumentation**: Specific instruments, vocal styles, sound sources
+3. **Production Style**: Recording quality, mixing style, effects
+4. **Mood & Atmosphere**: Emotional tone, energy level, ambiance
+5. **Structure**: Song sections, arrangement, dynamics
+6. **Technical Details**: Duration, audio quality, format preferences
+
+Example enhancements to consider:
+- Genre: "ambient electronic", "jazz fusion", "orchestral cinematic"
+- Tempo: "120 BPM", "slow ballad", "upbeat dance tempo"
+- Instruments: "acoustic guitar", "synthesizer pads", "string quartet"
+- Mood: "melancholic", "uplifting", "mysterious", "energetic"
+- Production: "lo-fi aesthetic", "studio quality", "live recording feel"
+
+Return only the enhanced prompt with detailed musical descriptions.`,
+
+        'text': `You are an expert prompt engineer specializing in creative writing. Enhance the following prompt for optimal creative content generation.
+
+Original prompt: "${prompt}"
+
+Create an enhanced version that includes:
+1. **Genre & Style**: Literary genre, writing style, narrative voice
+2. **Character Details**: Protagonist traits, motivations, background
+3. **Setting & World**: Time period, location, atmosphere, world-building
+4. **Plot Elements**: Conflict, themes, story structure, pacing
+5. **Tone & Mood**: Emotional atmosphere, reader experience
+6. **Technical Specs**: Length, format, target audience
+
+Example enhancements to consider:
+- Genre: "science fiction thriller", "romantic comedy", "historical drama"
+- Style: "first-person narrative", "stream of consciousness", "dialogue-heavy"
+- Setting: "dystopian future", "Victorian London", "small rural town"
+- Tone: "dark and gritty", "lighthearted and whimsical", "suspenseful"
+- Structure: "three-act structure", "episodic format", "non-linear timeline"
+
+Return only the enhanced prompt with rich narrative details.`
+    };
+
+    // Use category-specific enhancement or general artistic enhancement
+    const specificEnhancement = categoryEnhancements[creativeCategory];
+    if (specificEnhancement) {
+        return specificEnhancement;
+    }
+
+    // General artistic enhancement
+    return `You are an expert prompt engineer specializing in creative and artistic content generation. Enhance the following prompt for optimal creative AI results.
+
+Original prompt: "${prompt}"
+
+Create an enhanced version that includes:
+1. **Creative Details**: Rich descriptive language and specific artistic elements
+2. **Style & Aesthetic**: Artistic movement, technique, or reference points
+3. **Technical Parameters**: Quality, resolution, format, or production values
+4. **Mood & Atmosphere**: Emotional tone, ambiance, and sensory details
+5. **Composition**: Structure, layout, or arrangement principles
+6. **Professional Quality**: Industry-standard terminology and best practices
+
+Consider the context of ${currentSite || 'creative AI generation'} and enhance accordingly.
+
+Return only the enhanced prompt with professional creative terminology and rich details.`;
 }
 
 // Enhance system prompt with user preferences and feedback data
