@@ -4,6 +4,15 @@ class PromptStruct {
     constructor() {
         this.settings = {};
         this.currentTheme = 'light';
+        this.feedbackManager = new FeedbackManager();
+        this.currentOutputData = null;
+        this.feedbackRatings = {
+            overall: 0,
+            accuracy: 3,
+            completeness: 3,
+            structure: 3,
+            relevance: 3
+        };
         this.init();
     }
 
@@ -13,6 +22,7 @@ class PromptStruct {
         this.applyTheme();
         this.loadSchemaPreference();
         this.updateUsageDisplay();
+        this.initializeFeedbackSystem();
     }
 
     // Get the current API key based on selected provider
@@ -180,6 +190,38 @@ class PromptStruct {
                 this.convertPrompt();
             }
         });
+
+        // Enhance Prompt button
+        document.getElementById('enhancePromptBtn').addEventListener('click', () => {
+            this.openPromptEnhancement();
+        });
+
+        // Personalization Dashboard button
+        document.getElementById('personalizationBtn').addEventListener('click', () => {
+            this.openPersonalizationDashboard();
+        });
+
+        // Prompt Enhancement Modal
+        document.getElementById('closeEnhancement').addEventListener('click', () => {
+            this.closePromptEnhancement();
+        });
+
+        document.getElementById('acceptEnhancement').addEventListener('click', () => {
+            this.acceptEnhancedPrompt();
+        });
+
+        document.getElementById('modifyEnhancement').addEventListener('click', () => {
+            this.modifyEnhancedPrompt();
+        });
+
+        document.getElementById('rejectEnhancement').addEventListener('click', () => {
+            this.closePromptEnhancement();
+        });
+
+        // Personalization Dashboard Modal
+        document.getElementById('closePersonalization').addEventListener('click', () => {
+            this.closePersonalizationDashboard();
+        });
     }
 
     // Theme management
@@ -194,6 +236,754 @@ class PromptStruct {
         document.body.setAttribute('data-theme', this.currentTheme);
         const themeIcon = document.querySelector('.theme-icon');
         themeIcon.textContent = this.currentTheme === 'light' ? '🌙' : '☀️';
+    }
+
+    // Initialize feedback system
+    initializeFeedbackSystem() {
+        // Feedback quick actions
+        document.getElementById('thumbsUp').addEventListener('click', () => {
+            this.handleQuickFeedback(true);
+        });
+
+        document.getElementById('thumbsDown').addEventListener('click', () => {
+            this.handleQuickFeedback(false);
+        });
+
+        document.getElementById('markPreferred').addEventListener('click', () => {
+            this.markAsPreferred();
+        });
+
+        // Detailed feedback toggle
+        document.getElementById('toggleDetailedFeedback').addEventListener('click', () => {
+            this.toggleDetailedFeedback();
+        });
+
+        // Star ratings
+        this.initializeStarRatings();
+
+        // Feedback submission
+        document.getElementById('submitFeedback').addEventListener('click', () => {
+            this.submitDetailedFeedback();
+        });
+
+        document.getElementById('cancelFeedback').addEventListener('click', () => {
+            this.hideFeedbackSection();
+        });
+    }
+
+    // Initialize star rating interactions
+    initializeStarRatings() {
+        const starRatings = document.querySelectorAll('.star-rating');
+
+        starRatings.forEach(rating => {
+            const stars = rating.querySelectorAll('.star');
+            const aspect = rating.dataset.aspect || 'overall';
+
+            stars.forEach((star, index) => {
+                star.addEventListener('click', () => {
+                    this.setStarRating(aspect, index + 1);
+                    this.updateStarDisplay(rating, index + 1);
+                });
+
+                star.addEventListener('mouseenter', () => {
+                    this.highlightStars(rating, index + 1);
+                });
+            });
+
+            rating.addEventListener('mouseleave', () => {
+                const currentRating = this.feedbackRatings[aspect];
+                this.updateStarDisplay(rating, currentRating);
+            });
+        });
+    }
+
+    // Set star rating for an aspect
+    setStarRating(aspect, rating) {
+        this.feedbackRatings[aspect] = rating;
+    }
+
+    // Update star display
+    updateStarDisplay(ratingElement, rating) {
+        const stars = ratingElement.querySelectorAll('.star');
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.classList.add('active');
+            } else {
+                star.classList.remove('active');
+            }
+        });
+    }
+
+    // Highlight stars on hover
+    highlightStars(ratingElement, rating) {
+        const stars = ratingElement.querySelectorAll('.star');
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.style.color = '#fbbf24';
+            } else {
+                star.style.color = 'var(--border-color)';
+            }
+        });
+    }
+
+    // Handle quick feedback (thumbs up/down)
+    handleQuickFeedback(isPositive) {
+        if (!this.currentOutputData) return;
+
+        const thumbsUpBtn = document.getElementById('thumbsUp');
+        const thumbsDownBtn = document.getElementById('thumbsDown');
+
+        // Reset button states
+        thumbsUpBtn.classList.remove('active');
+        thumbsDownBtn.classList.remove('active');
+
+        // Set active state
+        if (isPositive) {
+            thumbsUpBtn.classList.add('active');
+        } else {
+            thumbsDownBtn.classList.add('active');
+        }
+
+        // Submit quick feedback
+        const feedbackData = {
+            rating: isPositive ? 4 : 2,
+            thumbsUp: isPositive,
+            accuracy: isPositive ? 4 : 2,
+            completeness: isPositive ? 4 : 2,
+            structure: isPositive ? 4 : 2,
+            relevance: isPositive ? 4 : 2,
+            textFeedback: '',
+            isPreferred: false
+        };
+
+        this.submitFeedback(feedbackData);
+        this.showNotification(isPositive ? 'Thanks for the positive feedback!' : 'Thanks for the feedback. We\'ll improve!', 'success');
+    }
+
+    // Mark output as preferred
+    markAsPreferred() {
+        if (!this.currentOutputData) return;
+
+        const preferredBtn = document.getElementById('markPreferred');
+        const isPreferred = !preferredBtn.classList.contains('active');
+
+        if (isPreferred) {
+            preferredBtn.classList.add('active');
+        } else {
+            preferredBtn.classList.remove('active');
+        }
+
+        const feedbackData = {
+            rating: 5,
+            thumbsUp: true,
+            accuracy: 5,
+            completeness: 5,
+            structure: 5,
+            relevance: 5,
+            textFeedback: 'Marked as preferred example',
+            isPreferred: isPreferred
+        };
+
+        this.submitFeedback(feedbackData);
+        this.showNotification(isPreferred ? 'Marked as preferred example!' : 'Removed from preferred examples', 'success');
+    }
+
+    // Toggle detailed feedback section
+    toggleDetailedFeedback() {
+        const detailedSection = document.getElementById('feedbackDetailed');
+        const toggleBtn = document.getElementById('toggleDetailedFeedback');
+        const toggleIcon = toggleBtn.querySelector('.toggle-icon');
+
+        if (detailedSection.style.display === 'none') {
+            detailedSection.style.display = 'block';
+            toggleBtn.classList.add('expanded');
+            toggleIcon.textContent = '▲';
+        } else {
+            detailedSection.style.display = 'none';
+            toggleBtn.classList.remove('expanded');
+            toggleIcon.textContent = '▼';
+        }
+    }
+
+    // Submit detailed feedback
+    async submitDetailedFeedback() {
+        if (!this.currentOutputData) return;
+
+        const textFeedback = document.getElementById('feedbackComment').value;
+
+        const feedbackData = {
+            rating: this.feedbackRatings.overall,
+            thumbsUp: this.feedbackRatings.overall >= 4,
+            accuracy: this.feedbackRatings.accuracy,
+            completeness: this.feedbackRatings.completeness,
+            structure: this.feedbackRatings.structure,
+            relevance: this.feedbackRatings.relevance,
+            textFeedback: textFeedback,
+            isPreferred: document.getElementById('markPreferred').classList.contains('active')
+        };
+
+        await this.submitFeedback(feedbackData);
+        this.hideFeedbackSection();
+        this.showNotification('Thank you for your detailed feedback!', 'success');
+    }
+
+    // Submit feedback to the feedback manager
+    async submitFeedback(feedbackData) {
+        try {
+            await this.feedbackManager.collectFeedback(this.currentOutputData, feedbackData);
+
+            // Update UI to reflect feedback submission
+            this.updateFeedbackUI();
+
+        } catch (error) {
+            console.error('Error submitting feedback:', error);
+            this.showNotification('Error submitting feedback', 'error');
+        }
+    }
+
+    // Update feedback UI after submission
+    updateFeedbackUI() {
+        // Disable feedback buttons temporarily
+        const feedbackSection = document.getElementById('feedbackSection');
+        const buttons = feedbackSection.querySelectorAll('button');
+
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+        });
+
+        // Re-enable after 2 seconds
+        setTimeout(() => {
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            });
+        }, 2000);
+    }
+
+    // Show feedback section
+    showFeedbackSection(outputData) {
+        this.currentOutputData = outputData;
+        const feedbackSection = document.getElementById('feedbackSection');
+        feedbackSection.style.display = 'block';
+
+        // Reset feedback state
+        this.resetFeedbackState();
+    }
+
+    // Hide feedback section
+    hideFeedbackSection() {
+        const feedbackSection = document.getElementById('feedbackSection');
+        feedbackSection.style.display = 'none';
+        this.resetFeedbackState();
+    }
+
+    // Reset feedback state
+    resetFeedbackState() {
+        // Reset ratings
+        this.feedbackRatings = {
+            overall: 0,
+            accuracy: 3,
+            completeness: 3,
+            structure: 3,
+            relevance: 3
+        };
+
+        // Reset UI
+        document.querySelectorAll('.feedback-thumb-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('markPreferred').classList.remove('active');
+        document.getElementById('feedbackComment').value = '';
+        document.getElementById('feedbackDetailed').style.display = 'none';
+
+        // Reset star ratings
+        document.querySelectorAll('.star-rating').forEach(rating => {
+            const aspect = rating.dataset.aspect || 'overall';
+            this.updateStarDisplay(rating, this.feedbackRatings[aspect]);
+        });
+    }
+
+    // Prompt Enhancement functionality
+    async openPromptEnhancement() {
+        const promptInput = document.getElementById('promptInput');
+        const currentPrompt = promptInput.value.trim();
+
+        if (!currentPrompt) {
+            this.showNotification('Please enter a prompt to enhance.', 'error');
+            return;
+        }
+
+        const modal = document.getElementById('promptEnhancementModal');
+        const originalDisplay = document.getElementById('originalPromptDisplay');
+        const enhancedDisplay = document.getElementById('enhancedPromptDisplay');
+        const loadingDiv = document.getElementById('enhancementLoading');
+        const recommendationsDiv = document.getElementById('enhancementRecommendations');
+
+        // Show modal and set original prompt
+        modal.style.display = 'flex';
+        originalDisplay.textContent = currentPrompt;
+        enhancedDisplay.style.display = 'none';
+        loadingDiv.style.display = 'block';
+
+        try {
+            // Get recommendations from feedback manager
+            const schema = document.getElementById('schemaSelect').value;
+            const recommendations = this.feedbackManager.getPromptRecommendations(currentPrompt, schema);
+
+            // Generate enhanced prompt using AI
+            const enhancedPrompt = await this.generateEnhancedPrompt(currentPrompt, schema, recommendations);
+
+            // Display results
+            loadingDiv.style.display = 'none';
+            enhancedDisplay.style.display = 'block';
+            enhancedDisplay.textContent = enhancedPrompt;
+
+            // Show recommendations
+            this.displayEnhancementRecommendations(recommendations, recommendationsDiv);
+
+            // Store for later use
+            this.enhancedPromptText = enhancedPrompt;
+
+        } catch (error) {
+            console.error('Error enhancing prompt:', error);
+            loadingDiv.style.display = 'none';
+            enhancedDisplay.style.display = 'block';
+            enhancedDisplay.textContent = 'Error generating enhanced prompt. Please try again.';
+            this.showNotification('Failed to enhance prompt', 'error');
+        }
+    }
+
+    // Generate enhanced prompt using AI
+    async generateEnhancedPrompt(originalPrompt, schema, recommendations) {
+        const apiKey = this.getCurrentApiKey();
+        if (!apiKey) {
+            throw new Error('API key not configured');
+        }
+
+        // Create enhancement prompt based on feedback data
+        const enhancementPrompt = this.createEnhancementPrompt(originalPrompt, schema, recommendations);
+
+        // Call AI API to enhance the prompt
+        const response = await chrome.runtime.sendMessage({
+            action: 'convertPrompt',
+            data: {
+                prompt: enhancementPrompt,
+                schema: 'custom',
+                apiKey: apiKey,
+                model: this.settings.model,
+                provider: this.settings.provider,
+                temperature: 0.3
+            }
+        });
+
+        if (response.success) {
+            // Extract enhanced prompt from response
+            try {
+                const result = JSON.parse(response.data.json);
+                return result.enhanced_prompt || result.prompt || originalPrompt;
+            } catch (e) {
+                // If not JSON, return the raw response
+                return response.data.json.replace(/['"]/g, '').trim();
+            }
+        } else {
+            throw new Error(response.error);
+        }
+    }
+
+    // Create enhancement prompt based on feedback and recommendations
+    createEnhancementPrompt(originalPrompt, schema, recommendations) {
+        let enhancementPrompt = `Please enhance the following prompt to generate better ${schema} schemas. `;
+
+        if (recommendations.length > 0) {
+            enhancementPrompt += `Based on user feedback and successful patterns:\n\n`;
+
+            recommendations.forEach(rec => {
+                enhancementPrompt += `- ${rec.message}\n`;
+                if (rec.examples && rec.examples.length > 0) {
+                    enhancementPrompt += `  Examples: ${rec.examples.slice(0, 2).join(', ')}\n`;
+                }
+
+                // Add specific guidance for different recommendation types
+                switch (rec.type) {
+                    case 'algorithm_approaches':
+                    case 'algorithmic_approaches':
+                        enhancementPrompt += `  → Add parameters to specify implementation approaches (brute force, optimal, or both)\n`;
+                        break;
+                    case 'complexity_analysis':
+                        enhancementPrompt += `  → Include parameters for time and space complexity analysis\n`;
+                        break;
+                    case 'include_examples':
+                        enhancementPrompt += `  → Add parameters for including example inputs and outputs\n`;
+                        break;
+                    case 'code_enhancement':
+                        enhancementPrompt += `  → Include parameters for code style and complexity analysis\n`;
+                        break;
+                }
+            });
+        }
+
+        // Add specific guidance for programming prompts
+        if (this.isProgrammingPrompt(originalPrompt)) {
+            enhancementPrompt += `\nFor programming/algorithm prompts, ensure the enhanced prompt includes:\n`;
+            enhancementPrompt += `- Parameters for different implementation approaches\n`;
+            enhancementPrompt += `- Options for complexity analysis\n`;
+            enhancementPrompt += `- Parameters for including examples and explanations\n`;
+        }
+
+        enhancementPrompt += `\nOriginal prompt: "${originalPrompt}"\n\n`;
+        enhancementPrompt += `Please provide an enhanced version that incorporates the above suggestions and is more specific, detailed, and likely to generate high-quality ${schema} schemas. `;
+        enhancementPrompt += `The enhanced prompt should ask for the specific elements mentioned in the recommendations. `;
+        enhancementPrompt += `Return only the enhanced prompt text, no additional formatting or explanation.`;
+
+        return enhancementPrompt;
+    }
+
+    // Helper method to check if prompt is programming-related
+    isProgrammingPrompt(prompt) {
+        const programmingKeywords = [
+            'code', 'function', 'algorithm', 'java', 'python', 'javascript',
+            'c++', 'programming', 'implement', 'fibonacci', 'sorting', 'search'
+        ];
+        const promptLower = prompt.toLowerCase();
+        return programmingKeywords.some(keyword => promptLower.includes(keyword));
+    }
+
+    // Display enhancement recommendations
+    displayEnhancementRecommendations(recommendations, container) {
+        if (recommendations.length === 0) {
+            container.innerHTML = '<p>No specific recommendations available yet. Generate more outputs and provide feedback to improve suggestions.</p>';
+            return;
+        }
+
+        let html = '<h4>💡 Enhancement Recommendations</h4><ul>';
+        recommendations.forEach(rec => {
+            html += `<li><strong>${rec.type.replace('_', ' ')}:</strong> ${rec.message}</li>`;
+        });
+        html += '</ul>';
+
+        container.innerHTML = html;
+    }
+
+    // Accept enhanced prompt
+    acceptEnhancedPrompt() {
+        if (this.enhancedPromptText) {
+            document.getElementById('promptInput').value = this.enhancedPromptText;
+            this.closePromptEnhancement();
+            this.showNotification('Enhanced prompt applied!', 'success');
+        }
+    }
+
+    // Modify enhanced prompt
+    modifyEnhancedPrompt() {
+        if (this.enhancedPromptText) {
+            // Create a textarea for editing
+            const enhancedDisplay = document.getElementById('enhancedPromptDisplay');
+            const currentText = this.enhancedPromptText;
+
+            enhancedDisplay.innerHTML = `
+                <textarea id="enhancedPromptEditor" style="width: 100%; height: 120px; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-family: inherit;">${currentText}</textarea>
+                <div style="margin-top: 8px;">
+                    <button onclick="app.saveModifiedPrompt()" style="background: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; margin-right: 8px;">Save</button>
+                    <button onclick="app.cancelModifyPrompt()" style="background: none; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px;">Cancel</button>
+                </div>
+            `;
+        }
+    }
+
+    // Save modified prompt
+    saveModifiedPrompt() {
+        const editor = document.getElementById('enhancedPromptEditor');
+        if (editor) {
+            this.enhancedPromptText = editor.value;
+            document.getElementById('enhancedPromptDisplay').textContent = this.enhancedPromptText;
+        }
+    }
+
+    // Cancel modify prompt
+    cancelModifyPrompt() {
+        document.getElementById('enhancedPromptDisplay').textContent = this.enhancedPromptText;
+    }
+
+    // Close prompt enhancement modal
+    closePromptEnhancement() {
+        document.getElementById('promptEnhancementModal').style.display = 'none';
+        this.enhancedPromptText = null;
+    }
+
+    // Personalization Dashboard functionality
+    openPersonalizationDashboard() {
+        const modal = document.getElementById('personalizationModal');
+        modal.style.display = 'flex';
+
+        // Initialize dashboard
+        this.initializeDashboardTabs();
+        this.loadDashboardData();
+    }
+
+    // Initialize dashboard tabs
+    initializeDashboardTabs() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.dataset.tab;
+
+                // Update tab buttons
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Update tab content
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === targetTab + 'Tab') {
+                        content.classList.add('active');
+                    }
+                });
+
+                // Load specific tab data
+                this.loadTabData(targetTab);
+            });
+        });
+    }
+
+    // Load dashboard data
+    async loadDashboardData() {
+        const stats = this.feedbackManager.getFeedbackStats();
+
+        // Update statistics
+        document.getElementById('totalFeedbackStat').textContent = stats.totalFeedback;
+        document.getElementById('averageRatingStat').textContent = stats.averageRating.toFixed(1);
+        document.getElementById('successRateStat').textContent = Math.round(stats.thumbsUpPercentage) + '%';
+
+        // Find most used schema
+        const schemaStats = {};
+        this.feedbackManager.feedbackData.forEach(feedback => {
+            schemaStats[feedback.schema] = (schemaStats[feedback.schema] || 0) + 1;
+        });
+        const preferredSchema = Object.keys(schemaStats).reduce((a, b) =>
+            schemaStats[a] > schemaStats[b] ? a : b, '-'
+        );
+        document.getElementById('preferredSchemaStat').textContent = preferredSchema;
+
+        // Load preferences
+        this.loadPreferencesTab();
+    }
+
+    // Load specific tab data
+    loadTabData(tabName) {
+        switch (tabName) {
+            case 'stats':
+                this.loadStatsTab();
+                break;
+            case 'preferences':
+                this.loadPreferencesTab();
+                break;
+            case 'patterns':
+                this.loadPatternsTab();
+                break;
+            case 'export':
+                this.loadExportTab();
+                break;
+        }
+    }
+
+    // Load statistics tab
+    loadStatsTab() {
+        const chartContainer = document.getElementById('feedbackChart');
+        const stats = this.feedbackManager.getFeedbackStats();
+
+        // Simple chart representation
+        let chartHTML = '<div style="text-align: center; color: var(--text-secondary);">';
+
+        if (stats.totalFeedback > 0) {
+            chartHTML += '<h4>Aspect Ratings</h4>';
+            Object.entries(stats.aspectAverages).forEach(([aspect, average]) => {
+                const percentage = (average / 5) * 100;
+                chartHTML += `
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>${aspect.charAt(0).toUpperCase() + aspect.slice(1)}</span>
+                            <span>${average.toFixed(1)}/5</span>
+                        </div>
+                        <div style="background: var(--border-color); height: 8px; border-radius: 4px;">
+                            <div style="background: var(--primary-color); height: 100%; width: ${percentage}%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            chartHTML += '<p>No feedback data available yet.<br>Start using the extension and provide feedback to see statistics.</p>';
+        }
+
+        chartHTML += '</div>';
+        chartContainer.innerHTML = chartHTML;
+    }
+
+    // Load preferences tab
+    loadPreferencesTab() {
+        const preferences = this.feedbackManager.userPreferences;
+
+        // Set preference values
+        document.getElementById('complexityPreference').value = preferences.complexityLevel;
+        document.getElementById('detailPreference').value = preferences.detailLevel;
+
+        // Set weight sliders
+        Object.entries(preferences.weights).forEach(([aspect, weight]) => {
+            const slider = document.getElementById(aspect + 'Slider');
+            const display = document.getElementById(aspect + 'Weight');
+            if (slider && display) {
+                const percentage = Math.round(weight * 100);
+                slider.value = percentage;
+                display.textContent = percentage + '%';
+
+                // Add event listener for real-time updates
+                slider.addEventListener('input', (e) => {
+                    const newValue = parseInt(e.target.value);
+                    display.textContent = newValue + '%';
+                    this.updatePreferenceWeight(aspect, newValue / 100);
+                });
+            }
+        });
+
+        // Add change listeners for dropdowns
+        document.getElementById('complexityPreference').addEventListener('change', (e) => {
+            this.updatePreference('complexityLevel', e.target.value);
+        });
+
+        document.getElementById('detailPreference').addEventListener('change', (e) => {
+            this.updatePreference('detailLevel', e.target.value);
+        });
+    }
+
+    // Update preference weight
+    updatePreferenceWeight(aspect, weight) {
+        this.feedbackManager.userPreferences.weights[aspect] = weight;
+        this.feedbackManager.saveFeedbackData();
+    }
+
+    // Update preference
+    updatePreference(key, value) {
+        this.feedbackManager.userPreferences[key] = value;
+        this.feedbackManager.saveFeedbackData();
+    }
+
+    // Load patterns tab
+    loadPatternsTab() {
+        const container = document.getElementById('patternsList');
+        const patterns = this.feedbackManager.userPreferences.preferredStructures;
+
+        let html = '';
+
+        if (Object.keys(patterns).length === 0) {
+            html = '<p style="text-align: center; color: var(--text-secondary);">No patterns learned yet. Provide more feedback to see learned patterns.</p>';
+        } else {
+            Object.entries(patterns).forEach(([key, pattern]) => {
+                if (Array.isArray(pattern)) {
+                    // Structure patterns
+                    html += `
+                        <div class="pattern-item">
+                            <h4>${key.replace('_', ' ').toUpperCase()}</h4>
+                            <p>Preferred structures based on your feedback:</p>
+                            <ul>
+                                ${pattern.slice(0, 3).map(p => `<li>Rating: ${p.rating}/5 - ${p.tags.join(', ')}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    // Aspect patterns
+                    html += `
+                        <div class="pattern-item">
+                            <h4>${key.replace('_', ' ').toUpperCase()}</h4>
+                            <p>Score: ${pattern.score.toFixed(2)} (${pattern.count} feedback entries)</p>
+                            <p>Tags: ${pattern.tags ? pattern.tags.join(', ') : 'None'}</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        container.innerHTML = html;
+    }
+
+    // Load export tab
+    loadExportTab() {
+        // Add event listeners for export/import buttons
+        document.getElementById('exportPersonalizationData').addEventListener('click', () => {
+            this.exportPersonalizationData();
+        });
+
+        document.getElementById('importPersonalizationData').addEventListener('click', () => {
+            this.importPersonalizationData();
+        });
+
+        document.getElementById('resetPersonalizationData').addEventListener('click', () => {
+            this.resetPersonalizationData();
+        });
+    }
+
+    // Export personalization data
+    exportPersonalizationData() {
+        const data = this.feedbackManager.exportFeedbackData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `promptstruct-personalization-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.showNotification('Personalization data exported!', 'success');
+    }
+
+    // Import personalization data
+    importPersonalizationData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+
+        input.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                // Validate data structure
+                if (data.feedbackData && data.userPreferences) {
+                    this.feedbackManager.feedbackData = data.feedbackData;
+                    this.feedbackManager.userPreferences = data.userPreferences;
+                    await this.feedbackManager.saveFeedbackData();
+
+                    this.loadDashboardData();
+                    this.showNotification('Personalization data imported successfully!', 'success');
+                } else {
+                    throw new Error('Invalid data format');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                this.showNotification('Failed to import data. Please check the file format.', 'error');
+            }
+        });
+
+        input.click();
+    }
+
+    // Reset personalization data
+    resetPersonalizationData() {
+        if (confirm('Are you sure you want to reset all personalization data? This action cannot be undone.')) {
+            this.feedbackManager.clearFeedbackData();
+            this.loadDashboardData();
+            this.showNotification('Personalization data reset successfully!', 'success');
+        }
+    }
+
+    // Close personalization dashboard
+    closePersonalizationDashboard() {
+        document.getElementById('personalizationModal').style.display = 'none';
     }
 
     // Settings modal management
@@ -455,6 +1245,17 @@ class PromptStruct {
                 if (result.success) {
                     document.getElementById('jsonOutput').innerHTML = `<code>${this.escapeHtml(result.data.json)}</code>`;
                     document.getElementById('comparisonModal').style.display = 'none';
+
+                    // Show feedback section for the selected result
+                    const outputData = {
+                        prompt: result.prompt || document.getElementById('promptInput').value,
+                        json: result.data.json,
+                        schema: document.getElementById('schemaSelect').value,
+                        provider: result.provider,
+                        model: result.model,
+                        timestamp: Date.now()
+                    };
+                    this.showFeedbackSection(outputData);
                 }
             });
         });
@@ -586,6 +1387,17 @@ class PromptStruct {
                 if (result.success) {
                     document.getElementById('jsonOutput').innerHTML = `<code>${this.escapeHtml(result.json)}</code>`;
                     document.getElementById('batchModal').style.display = 'none';
+
+                    // Show feedback section for the selected batch result
+                    const outputData = {
+                        prompt: result.prompt,
+                        json: result.json,
+                        schema: document.getElementById('schemaSelect').value,
+                        provider: this.settings.provider,
+                        model: this.settings.model,
+                        timestamp: Date.now()
+                    };
+                    this.showFeedbackSection(outputData);
                 }
             });
         });
@@ -738,7 +1550,8 @@ class PromptStruct {
                     apiKey: currentApiKey,
                     provider: this.settings.provider,
                     model: this.settings.model,
-                    temperature: this.settings.temperature
+                    temperature: this.settings.temperature,
+                    userPreferences: this.feedbackManager.userPreferences
                 }
             });
 
@@ -754,6 +1567,17 @@ class PromptStruct {
                 if (response.data.usage) {
                     this.trackUsage(response.data.usage, this.settings.provider, this.settings.model);
                 }
+
+                // Show feedback section for the generated output
+                const outputData = {
+                    prompt: prompt,
+                    json: response.data.json,
+                    schema: document.getElementById('schemaSelect').value,
+                    provider: this.settings.provider,
+                    model: this.settings.model,
+                    timestamp: Date.now()
+                };
+                this.showFeedbackSection(outputData);
 
                 this.showNotification('Prompt converted successfully!', 'success');
             } else {
@@ -1354,6 +2178,8 @@ class PromptStruct {
 }
 
 // Initialize the app when DOM is loaded
+let app;
 document.addEventListener('DOMContentLoaded', () => {
-    new PromptStruct();
+    app = new PromptStruct();
+    window.app = app; // Make globally accessible for inline handlers
 });

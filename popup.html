@@ -17,6 +17,9 @@
                 <button type="button" id="themeToggle" class="theme-toggle" title="Toggle Dark Mode">
                     <span class="theme-icon">🌙</span>
                 </button>
+                <button type="button" id="personalizationBtn" class="personalization-btn" title="Personalization Dashboard">
+                    <span class="btn-icon">🎯</span>
+                </button>
                 <button type="button" id="historyBtn" class="history-btn" title="Prompt History">
                     <span class="history-icon">📚</span>
                 </button>
@@ -54,6 +57,10 @@ Example: 'Create a function that takes a user's name and age, validates the age 
                     <button type="button" id="convertBtn" class="convert-btn">
                         <span class="btn-icon">✨</span>
                         Convert to JSON
+                    </button>
+                    <button type="button" id="enhancePromptBtn" class="enhance-prompt-btn" title="AI-powered prompt enhancement">
+                        <span class="btn-icon">🚀</span>
+                        Enhance Prompt
                     </button>
                     <button type="button" id="compareBtn" class="compare-btn" title="Compare across providers">
                         <span class="btn-icon">⚖️</span>
@@ -93,6 +100,101 @@ Example: 'Create a function that takes a user's name and age, validates the age 
                     <pre id="jsonOutput" class="json-output">
                         <code>// Your generated JSON will appear here...</code>
                     </pre>
+
+                    <!-- Feedback System -->
+                    <div id="feedbackSection" class="feedback-section" style="display: none;">
+                        <div class="feedback-header">
+                            <h3>Rate this output</h3>
+                            <div class="feedback-quick-actions">
+                                <button class="feedback-thumb-btn thumb-up" id="thumbsUp" title="Good output">
+                                    <span class="thumb-icon">👍</span>
+                                </button>
+                                <button class="feedback-thumb-btn thumb-down" id="thumbsDown" title="Poor output">
+                                    <span class="thumb-icon">👎</span>
+                                </button>
+                                <button class="feedback-star-btn" id="markPreferred" title="Mark as preferred example">
+                                    <span class="star-icon">⭐</span>
+                                    <span class="star-text">Preferred</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="feedback-detailed" id="feedbackDetailed" style="display: none;">
+                            <div class="feedback-rating">
+                                <label>Overall Rating:</label>
+                                <div class="star-rating" id="overallRating">
+                                    <span class="star" data-rating="1">★</span>
+                                    <span class="star" data-rating="2">★</span>
+                                    <span class="star" data-rating="3">★</span>
+                                    <span class="star" data-rating="4">★</span>
+                                    <span class="star" data-rating="5">★</span>
+                                </div>
+                            </div>
+
+                            <div class="feedback-aspects">
+                                <div class="aspect-rating">
+                                    <label>Accuracy:</label>
+                                    <div class="star-rating" data-aspect="accuracy">
+                                        <span class="star" data-rating="1">★</span>
+                                        <span class="star" data-rating="2">★</span>
+                                        <span class="star" data-rating="3">★</span>
+                                        <span class="star" data-rating="4">★</span>
+                                        <span class="star" data-rating="5">★</span>
+                                    </div>
+                                </div>
+
+                                <div class="aspect-rating">
+                                    <label>Completeness:</label>
+                                    <div class="star-rating" data-aspect="completeness">
+                                        <span class="star" data-rating="1">★</span>
+                                        <span class="star" data-rating="2">★</span>
+                                        <span class="star" data-rating="3">★</span>
+                                        <span class="star" data-rating="4">★</span>
+                                        <span class="star" data-rating="5">★</span>
+                                    </div>
+                                </div>
+
+                                <div class="aspect-rating">
+                                    <label>Structure:</label>
+                                    <div class="star-rating" data-aspect="structure">
+                                        <span class="star" data-rating="1">★</span>
+                                        <span class="star" data-rating="2">★</span>
+                                        <span class="star" data-rating="3">★</span>
+                                        <span class="star" data-rating="4">★</span>
+                                        <span class="star" data-rating="5">★</span>
+                                    </div>
+                                </div>
+
+                                <div class="aspect-rating">
+                                    <label>Relevance:</label>
+                                    <div class="star-rating" data-aspect="relevance">
+                                        <span class="star" data-rating="1">★</span>
+                                        <span class="star" data-rating="2">★</span>
+                                        <span class="star" data-rating="3">★</span>
+                                        <span class="star" data-rating="4">★</span>
+                                        <span class="star" data-rating="5">★</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="feedback-text">
+                                <label for="feedbackComment">Additional feedback (optional):</label>
+                                <textarea id="feedbackComment" placeholder="What did you like or dislike about this output? Any suggestions for improvement?"></textarea>
+                            </div>
+
+                            <div class="feedback-actions">
+                                <button class="feedback-submit-btn" id="submitFeedback">Submit Feedback</button>
+                                <button class="feedback-cancel-btn" id="cancelFeedback">Cancel</button>
+                            </div>
+                        </div>
+
+                        <div class="feedback-toggle">
+                            <button class="feedback-toggle-btn" id="toggleDetailedFeedback">
+                                <span class="toggle-text">Detailed Feedback</span>
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -259,6 +361,134 @@ Design an agent for customer support"></textarea>
             </div>
         </div>
 
+        <!-- Prompt Enhancement Modal -->
+        <div id="promptEnhancementModal" class="modal" style="display: none;">
+            <div class="modal-content enhancement-modal">
+                <div class="modal-header">
+                    <h2>🚀 Prompt Enhancement</h2>
+                    <button type="button" id="closeEnhancement" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="enhancement-comparison">
+                        <div class="original-prompt">
+                            <h3>Original Prompt</h3>
+                            <div class="prompt-display" id="originalPromptDisplay"></div>
+                        </div>
+                        <div class="enhanced-prompt">
+                            <h3>Enhanced Prompt</h3>
+                            <div class="prompt-display" id="enhancedPromptDisplay"></div>
+                            <div class="enhancement-loading" id="enhancementLoading" style="display: none;">
+                                <div class="ai-thinking">
+                                    <div class="thinking-dots">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                    <p>AI is analyzing your prompt...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="enhancement-recommendations" id="enhancementRecommendations"></div>
+                    <div class="enhancement-actions">
+                        <button class="accept-enhancement-btn" id="acceptEnhancement">Accept Enhancement</button>
+                        <button class="modify-enhancement-btn" id="modifyEnhancement">Modify</button>
+                        <button class="reject-enhancement-btn" id="rejectEnhancement">Keep Original</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personalization Dashboard Modal -->
+        <div id="personalizationModal" class="modal" style="display: none;">
+            <div class="modal-content personalization-modal">
+                <div class="modal-header">
+                    <h2>🎯 Personalization Dashboard</h2>
+                    <button type="button" id="closePersonalization" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="dashboard-tabs">
+                        <button class="tab-btn active" data-tab="stats">Statistics</button>
+                        <button class="tab-btn" data-tab="preferences">Preferences</button>
+                        <button class="tab-btn" data-tab="patterns">Patterns</button>
+                        <button class="tab-btn" data-tab="export">Export/Import</button>
+                    </div>
+
+                    <div class="tab-content active" id="statsTab">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h4>Total Feedback</h4>
+                                <div class="stat-value" id="totalFeedbackStat">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Average Rating</h4>
+                                <div class="stat-value" id="averageRatingStat">0.0</div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Success Rate</h4>
+                                <div class="stat-value" id="successRateStat">0%</div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Preferred Schema</h4>
+                                <div class="stat-value" id="preferredSchemaStat">-</div>
+                            </div>
+                        </div>
+                        <div class="feedback-chart" id="feedbackChart"></div>
+                    </div>
+
+                    <div class="tab-content" id="preferencesTab">
+                        <div class="preference-controls">
+                            <div class="preference-group">
+                                <label>Complexity Level:</label>
+                                <select id="complexityPreference">
+                                    <option value="simple">Simple</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="complex">Complex</option>
+                                </select>
+                            </div>
+                            <div class="preference-group">
+                                <label>Detail Level:</label>
+                                <select id="detailPreference">
+                                    <option value="minimal">Minimal</option>
+                                    <option value="standard">Standard</option>
+                                    <option value="detailed">Detailed</option>
+                                </select>
+                            </div>
+                            <div class="preference-weights">
+                                <h4>Aspect Weights</h4>
+                                <div class="weight-slider">
+                                    <label>Accuracy: <span id="accuracyWeight">30%</span></label>
+                                    <input type="range" id="accuracySlider" min="0" max="100" value="30">
+                                </div>
+                                <div class="weight-slider">
+                                    <label>Completeness: <span id="completenessWeight">25%</span></label>
+                                    <input type="range" id="completenessSlider" min="0" max="100" value="25">
+                                </div>
+                                <div class="weight-slider">
+                                    <label>Structure: <span id="structureWeight">25%</span></label>
+                                    <input type="range" id="structureSlider" min="0" max="100" value="25">
+                                </div>
+                                <div class="weight-slider">
+                                    <label>Relevance: <span id="relevanceWeight">20%</span></label>
+                                    <input type="range" id="relevanceSlider" min="0" max="100" value="20">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="patternsTab">
+                        <div class="patterns-list" id="patternsList"></div>
+                    </div>
+
+                    <div class="tab-content" id="exportTab">
+                        <div class="export-controls">
+                            <button class="export-data-btn" id="exportPersonalizationData">Export Data</button>
+                            <button class="import-data-btn" id="importPersonalizationData">Import Data</button>
+                            <button class="reset-data-btn" id="resetPersonalizationData">Reset All Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Loading Overlay -->
         <div id="loadingOverlay" class="loading-overlay" style="display: none;">
             <div class="loading-spinner">
@@ -277,6 +507,7 @@ Design an agent for customer support"></textarea>
     <script src="schemas.js"></script>
     <script src="templates.js"></script>
     <script src="langchain-utils.js"></script>
+    <script src="feedback-system.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

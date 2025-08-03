@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PromptStruct Learning System Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .demo-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .before-after { display: flex; gap: 20px; }
+        .before, .after { flex: 1; }
+        .feedback-example { background: #f0f8ff; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .recommendation { background: #f0fff0; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .enhanced-prompt { background: #fff8f0; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        h3 { color: #333; }
+        .highlight { background: #ffeb3b; padding: 2px 4px; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <h1>🧠 PromptStruct Learning System Demo</h1>
+    <p>This demonstrates how the system learns from your feedback and improves future prompts.</p>
+
+    <div class="demo-section">
+        <h3>📝 Original User Request</h3>
+        <p><strong>Prompt:</strong> "write a code for fibonacci series in java"</p>
+        <p><strong>Schema:</strong> OpenAI Function</p>
+    </div>
+
+    <div class="demo-section">
+        <h3>🎯 First Generation (Before Learning)</h3>
+        <div class="before">
+            <h4>Generated JSON:</h4>
+            <pre>{
+  "name": "generate_fibonacci_series",
+  "description": "Generates a Fibonacci series up to a given number of terms",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "num_terms": {
+        "type": "number",
+        "description": "The number of terms in the Fibonacci series"
+      }
+    },
+    "required": ["num_terms"]
+  }
+}</pre>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>💬 User Feedback</h3>
+        <div class="feedback-example">
+            <p><strong>Rating:</strong> 4/5 stars (Thumbs Up)</p>
+            <p><strong>Text Feedback:</strong> <span class="highlight">"the json prompt should also contain to ask to tell about the brute force and optimal way implementation"</span></p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>🤖 System Learning Process</h3>
+        <div class="recommendation">
+            <h4>Extracted Suggestions:</h4>
+            <ul>
+                <li>✅ <strong>Algorithm Approaches:</strong> Include parameters for different implementation approaches</li>
+                <li>✅ <strong>Brute Force & Optimal:</strong> Ask for both brute force and optimal solutions</li>
+                <li>✅ <strong>Implementation Details:</strong> Request specific implementation guidance</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>🚀 Enhanced Prompt (After Learning)</h3>
+        <div class="enhanced-prompt">
+            <p><strong>Next time you ask for Fibonacci code, the system will enhance your prompt to:</strong></p>
+            <p>"Create a Java function for generating Fibonacci series that includes parameters for:</p>
+            <ul>
+                <li><span class="highlight">Implementation approach (brute force, optimal, or both)</span></li>
+                <li><span class="highlight">Algorithm complexity analysis</span></li>
+                <li><span class="highlight">Code examples and explanations</span></li>
+                <li>Number of terms to generate</li>
+                <li>Starting values (optional)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>🎯 Improved Generation (After Learning)</h3>
+        <div class="after">
+            <h4>Enhanced JSON Output:</h4>
+            <pre>{
+  "name": "generate_fibonacci_series",
+  "description": "Generates Fibonacci series with multiple implementation approaches",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "num_terms": {
+        "type": "number",
+        "description": "The number of terms in the Fibonacci series"
+      },
+      <span class="highlight">"approach_type": {
+        "type": "string",
+        "enum": ["brute_force", "optimal", "both"],
+        "description": "Implementation approach to use"
+      },
+      "include_complexity": {
+        "type": "boolean",
+        "description": "Include time and space complexity analysis"
+      },
+      "include_examples": {
+        "type": "boolean", 
+        "description": "Include code examples and explanations"
+      }</span>
+    },
+    "required": ["num_terms", "approach_type"]
+  }
+}</pre>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>📊 Learning Benefits</h3>
+        <ul>
+            <li>🎯 <strong>Personalized:</strong> Learns your specific preferences and requirements</li>
+            <li>🔄 <strong>Continuous:</strong> Gets better with each feedback you provide</li>
+            <li>🧠 <strong>Intelligent:</strong> Recognizes patterns and applies them to similar requests</li>
+            <li>⚡ <strong>Automatic:</strong> Enhances prompts without you having to remember details</li>
+            <li>🎨 <strong>Contextual:</strong> Understands different types of requests (algorithms, APIs, etc.)</li>
+        </ul>
+    </div>
+
+    <div class="demo-section">
+        <h3>🔧 How It Works</h3>
+        <ol>
+            <li><strong>Feedback Collection:</strong> System captures your ratings and text feedback</li>
+            <li><strong>Pattern Recognition:</strong> Analyzes feedback to identify improvement suggestions</li>
+            <li><strong>Learning Integration:</strong> Incorporates suggestions into future prompt enhancements</li>
+            <li><strong>Automatic Application:</strong> Applies learned patterns to similar future requests</li>
+            <li><strong>Continuous Improvement:</strong> Refines understanding with each interaction</li>
+        </ol>
+    </div>
+
+    <script>
+        // Add some interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const highlights = document.querySelectorAll('.highlight');
+            highlights.forEach(highlight => {
+                highlight.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#ff9800';
+                    this.style.color = 'white';
+                });
+                highlight.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '#ffeb3b';
+                    this.style.color = 'black';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

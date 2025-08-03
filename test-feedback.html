@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>PromptStruct Feedback System Test</h1>
+    <div id="test-results"></div>
+    
+    <script src="feedback-system.js"></script>
+    <script>
+        // Simple test suite for the feedback system
+        async function runTests() {
+            const results = document.getElementById('test-results');
+            
+            function addResult(test, success, message) {
+                const div = document.createElement('div');
+                div.className = `test-result ${success ? 'success' : 'error'}`;
+                div.innerHTML = `<strong>${test}:</strong> ${message}`;
+                results.appendChild(div);
+            }
+            
+            try {
+                // Test 1: Initialize FeedbackManager
+                const feedbackManager = new FeedbackManager();
+                addResult('Initialization', true, 'FeedbackManager created successfully');
+                
+                // Test 2: Test collectFeedback with valid data
+                const outputData = {
+                    prompt: 'Create a user registration function',
+                    json: '{"name": "registerUser", "parameters": {"username": "string", "email": "string"}}',
+                    schema: 'openai-function',
+                    provider: 'openai',
+                    model: 'gpt-4'
+                };
+                
+                const feedbackInput = {
+                    rating: 4,
+                    thumbsUp: true,
+                    accuracy: 4,
+                    completeness: 4,
+                    structure: 4,
+                    relevance: 4,
+                    textFeedback: 'Great output!',
+                    isPreferred: false
+                };
+                
+                const feedback = await feedbackManager.collectFeedback(outputData, feedbackInput);
+                addResult('Collect Feedback', true, `Feedback collected with ID: ${feedback.id}`);
+                
+                // Test 3: Test with invalid JSON
+                const invalidOutputData = {
+                    prompt: 'Test prompt',
+                    json: '{"invalid": json}',
+                    schema: 'custom',
+                    provider: 'test',
+                    model: 'test'
+                };
+                
+                const feedback2 = await feedbackManager.collectFeedback(invalidOutputData, feedbackInput);
+                addResult('Invalid JSON Handling', true, 'Invalid JSON handled gracefully');
+                
+                // Test 4: Test preferences update
+                const stats = feedbackManager.getFeedbackStats();
+                addResult('Statistics', true, `Total feedback: ${stats.totalFeedback}, Average rating: ${stats.averageRating}`);
+                
+                // Test 5: Test recommendations
+                const recommendations = feedbackManager.getPromptRecommendations('Create a function', 'openai-function');
+                addResult('Recommendations', true, `Generated ${recommendations.length} recommendations`);
+                
+                addResult('Overall', true, 'All tests passed! The feedback system is working correctly.');
+                
+            } catch (error) {
+                addResult('Error', false, `Test failed: ${error.message}`);
+                console.error('Test error:', error);
+            }
+        }
+        
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

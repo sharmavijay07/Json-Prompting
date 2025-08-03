@@ -75,9 +75,13 @@ async function handlePromptConversion(data, sendResponse) {
             return;
         }
 
-        const systemPrompt = typeof SchemaTemplates !== 'undefined' ?
+        // Get base system prompt
+        let systemPrompt = typeof SchemaTemplates !== 'undefined' ?
             SchemaTemplates.getSystemPrompt(schema) :
             getBasicSystemPrompt(schema);
+
+        // Enhance system prompt with user preferences if available
+        systemPrompt = await enhanceSystemPromptWithPreferences(systemPrompt, schema, data.userPreferences);
 
         let response, result, generatedJson;
 
@@ -558,6 +562,102 @@ function getBasicSystemPrompt(schema) {
         default:
             return basePrompt + `Convert the user's prompt into a well-structured JSON format that best represents the intent and requirements.`;
     }
+}
+
+// Enhance system prompt with user preferences and feedback data
+async function enhanceSystemPromptWithPreferences(basePrompt, schema, userPreferences) {
+    if (!userPreferences) {
+        return basePrompt;
+    }
+
+    let enhancedPrompt = basePrompt;
+
+    // Add complexity level guidance
+    if (userPreferences.complexityLevel) {
+        const complexityGuidance = {
+            'simple': 'Keep the schema simple and straightforward with minimal nesting.',
+            'medium': 'Create a moderately detailed schema with appropriate structure.',
+            'complex': 'Generate a comprehensive and detailed schema with rich structure and validation.'
+        };
+        enhancedPrompt += ` ${complexityGuidance[userPreferences.complexityLevel]}`;
+    }
+
+    // Add detail level guidance
+    if (userPreferences.detailLevel) {
+        const detailGuidance = {
+            'minimal': 'Include only essential fields and basic descriptions.',
+            'standard': 'Provide good descriptions and reasonable field coverage.',
+            'detailed': 'Include comprehensive descriptions, examples, and extensive field coverage.'
+        };
+        enhancedPrompt += ` ${detailGuidance[userPreferences.detailLevel]}`;
+    }
+
+    // Add preferred structure patterns if available
+    if (userPreferences.preferredStructures) {
+        const schemaPatterns = userPreferences.preferredStructures[`${schema}_structure`];
+        if (schemaPatterns && schemaPatterns.length > 0) {
+            const topPattern = schemaPatterns[0];
+            if (topPattern.structure && topPattern.structure.patterns) {
+                const patterns = topPattern.structure.patterns;
+                if (patterns.length > 0) {
+                    enhancedPrompt += ` Based on user preferences, ensure the schema includes: ${patterns.join(', ')}.`;
+                }
+            }
+        }
+
+        // Add user feedback suggestions
+        const suggestionKeys = Object.keys(userPreferences.preferredStructures).filter(key =>
+            key.includes('suggestion') || key.includes('algorithm') || key.includes('complexity')
+        );
+
+        if (suggestionKeys.length > 0) {
+            enhancedPrompt += ` Based on user feedback suggestions:`;
+
+            // Check for algorithm approach suggestions
+            if (suggestionKeys.some(key => key.includes('algorithm') || key.includes('approach'))) {
+                enhancedPrompt += ` Include parameters for different implementation approaches (brute force, optimal, etc.).`;
+            }
+
+            // Check for complexity analysis suggestions
+            if (suggestionKeys.some(key => key.includes('complexity'))) {
+                enhancedPrompt += ` Include parameters for time and space complexity analysis.`;
+            }
+
+            // Check for example suggestions
+            if (suggestionKeys.some(key => key.includes('example'))) {
+                enhancedPrompt += ` Include parameters for providing examples and explanations.`;
+            }
+        }
+    }
+
+    // Add aspect weight guidance
+    if (userPreferences.weights) {
+        const weights = userPreferences.weights;
+        const priorityAspects = Object.entries(weights)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 2)
+            .map(([aspect]) => aspect);
+
+        if (priorityAspects.length > 0) {
+            const aspectGuidance = {
+                'accuracy': 'Prioritize technical accuracy and correctness of the schema.',
+                'completeness': 'Ensure comprehensive coverage of all necessary fields and properties.',
+                'structure': 'Focus on clean, well-organized schema structure and hierarchy.',
+                'relevance': 'Maintain strong relevance to the original prompt requirements.'
+            };
+
+            const guidance = priorityAspects
+                .map(aspect => aspectGuidance[aspect])
+                .filter(Boolean)
+                .join(' ');
+
+            if (guidance) {
+                enhancedPrompt += ` ${guidance}`;
+            }
+        }
+    }
+
+    return enhancedPrompt;
 }
 
 

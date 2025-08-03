@@ -8,6 +8,17 @@
       {
         "html-has-lang": "off"
       }
-    ]
+    ],
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": [
+          "backdrop-filter",
+          "user-select",
+          "min-width: fit-content"
+        ]
+      }
+    ],
+    "meta-viewport": "off"
   }
 }
